@@ -8,7 +8,6 @@ mod ray;
 mod sphere;
 mod util;
 
-use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::camera::Camera;
@@ -28,7 +27,7 @@ fn cover() {
 
     let ground_material =
         SharedMaterial::new(Material::new_lambertian(vec3(0.5, 0.5, 0.5), Vec3::ONE));
-    world.add(Rc::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         vec3(0.0, -1000.0, 0.0),
         1000.0,
         ground_material,
@@ -56,21 +55,21 @@ fn cover() {
             } else {
                 SharedMaterial::new(Material::new_dielectric(1.5))
             };
-            world.add(Rc::new(Sphere::new(center, 0.2, material)));
+            world.add(Arc::new(Sphere::new(center, 0.2, material)));
         }
     }
 
     let material1 = SharedMaterial::new(Material::new_dielectric(1.5));
-    world.add(Rc::new(Sphere::new(vec3(0.0, 1.0, 0.0), 1.0, material1)));
+    world.add(Arc::new(Sphere::new(vec3(0.0, 1.0, 0.0), 1.0, material1)));
 
     let material2 = SharedMaterial::new(Material::new_lambertian(vec3(0.4, 0.2, 0.1), Vec3::ONE));
-    world.add(Rc::new(Sphere::new(vec3(-4.0, 1.0, 0.0), 1.0, material2)));
+    world.add(Arc::new(Sphere::new(vec3(-4.0, 1.0, 0.0), 1.0, material2)));
 
     let material3 = SharedMaterial::new(Material::new_metal(vec3(0.7, 0.6, 0.5), 0.0));
-    world.add(Rc::new(Sphere::new(vec3(4.0, 1.0, 0.0), 1.0, material3)));
+    world.add(Arc::new(Sphere::new(vec3(4.0, 1.0, 0.0), 1.0, material3)));
 
-    let image_width = 1280;
-    let image_height = 720;
+    let image_width = 800;
+    let image_height = 600;
 
     let camera = Camera::new(
         image_width,
@@ -81,13 +80,16 @@ fn cover() {
         vec3(0.0, 1.0, 0.0),
         0.6,
         7.0,
+        100,
         10,
-        5,
     );
 
-    let mut imgbuf = image::ImageBuffer::new(image_width as u32, image_height as u32);
+    let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
 
-    camera.render(&world, &mut imgbuf, &mut rng);
+    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global().unwrap();
+
+    // camera.render(&world, &mut imgbuf, &mut rng);
+    camera.render_threaded(&world, &mut imgbuf);
 
     imgbuf.save("output.png").unwrap();
 }

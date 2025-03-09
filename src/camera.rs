@@ -5,6 +5,7 @@ use crate::ray::Ray;
 use crate::util::{deg_to_rad, random_in_unit_disk};
 
 use glam::{Vec3, vec3};
+use rayon::iter::ParallelIterator;
 
 #[derive(Debug)]
 pub struct Camera {
@@ -33,10 +34,28 @@ pub struct Camera {
 }
 
 impl Camera {
+    pub fn render_threaded(
+        &self,
+        world: &(impl Hittable + Send + Sync),
+        imgbuf: &mut image::RgbImage,
+    ) {
+        imgbuf
+            .par_enumerate_pixels_mut()
+            .for_each_init(rand::rng, |rng, (x, y, pixel)| {
+                let mut pixel_color = Vec3::ZERO;
+                for _ in 0..self.samples_per_pixel {
+                    let ray = self.get_ray(x as i32, y as i32, rng);
+                    pixel_color += Self::ray_color(ray, self.max_depth, world, rng);
+                }
+
+                *pixel = vec3_to_rgb8(self.pixel_samples_scale * pixel_color);
+            });
+    }
+
     pub fn render(
         &self,
         world: &impl Hittable,
-        imgbuf: &mut image::ImageBuffer<image::Rgb<u8>, Vec<u8>>,
+        imgbuf: &mut image::RgbImage,
         rng: &mut impl rand::Rng,
     ) {
         let mut pixel_num = 1;

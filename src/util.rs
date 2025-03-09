@@ -21,26 +21,6 @@ pub fn random_vec3(min: Vec3, max: Vec3, rng: &mut impl rand::Rng) -> Vec3 {
 
 #[inline(always)]
 pub fn random_unit_vec3(rng: &mut impl rand::Rng) -> Vec3 {
-    // loop {
-    //     let v = random_vec3(Vec3::NEG_ONE, Vec3::ONE, rng);
-    //     let length_squared = v.length_squared();
-    //     if length_squared > 1e-35 && length_squared <= 1.0 {
-    //         return v / length_squared.sqrt();
-    //     }
-    // }
-
-    // loop {
-    //     let v = vec3(
-    //         rng.sample(rand_distr::StandardNormal),
-    //         rng.sample(rand_distr::StandardNormal),
-    //         rng.sample(rand_distr::StandardNormal),
-    //     );
-    //     let length_squared = v.length_squared();
-    //     if length_squared > 1e-35 {
-    //         return v / length_squared.sqrt();
-    //     }
-    // }
-
     let theta = rng.random_range(0.0..(2.0 * std::f32::consts::PI));
     let z: f32 = rng.random_range(-1.0..1.0);
     vec3(

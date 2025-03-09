@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::hit::HitRecord;
 use crate::ray::Ray;
@@ -172,14 +172,14 @@ impl Default for Material {
 
 #[derive(Clone, Debug)]
 pub struct SharedMaterial {
-    inner: Rc<Material>,
+    inner: Arc<Material>,
 }
 
 impl SharedMaterial {
     #[inline(always)]
     pub fn new(material: Material) -> Self {
         Self {
-            inner: Rc::new(material),
+            inner: Arc::new(material),
         }
     }
 }
@@ -197,7 +197,7 @@ impl Default for SharedMaterial {
     #[inline(always)]
     fn default() -> Self {
         Self {
-            inner: Rc::new(DEFAULT_MATERIAL),
+            inner: Arc::new(DEFAULT_MATERIAL),
         }
     }
 }
