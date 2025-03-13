@@ -1,3 +1,5 @@
+use std::sync::atomic::AtomicU32;
+
 use crate::color::vec3_to_rgb8;
 use crate::hit::{HitRecord, Hittable};
 use crate::interval::Interval;
@@ -9,8 +11,8 @@ use rayon::iter::ParallelIterator;
 
 #[derive(Debug)]
 pub struct Camera {
-    image_width: i32,
-    image_height: i32,
+    image_width: u32,
+    image_height: u32,
     aspect_ratio: f32, // remove?
     vfov: f32,
     lookfrom: Vec3,
@@ -39,17 +41,41 @@ impl Camera {
         world: &(impl Hittable + Send + Sync),
         imgbuf: &mut image::RgbImage,
     ) {
-        imgbuf
-            .par_enumerate_pixels_mut()
-            .for_each_init(rand::rng, |rng, (x, y, pixel)| {
-                let mut pixel_color = Vec3::ZERO;
-                for _ in 0..self.samples_per_pixel {
-                    let ray = self.get_ray(x as i32, y as i32, rng);
-                    pixel_color += Self::ray_color(ray, self.max_depth, world, rng);
+        let pixels_done = AtomicU32::new(0);
+        let total_pixels = self.image_width * self.image_height;
+        // this is bad?
+        rayon::join(
+            || {
+                loop {
+                    let p_done = pixels_done.load(std::sync::atomic::Ordering::Relaxed);
+                    if p_done >= total_pixels {
+                        eprint!("\rProgress: 100%");
+                        break;
+                    }
+                    let progress = (pixels_done.load(std::sync::atomic::Ordering::Relaxed) as f32
+                        / total_pixels as f32)
+                        * 100.0;
+                    eprint!("\rProgress: {}%", progress as u32);
+                    std::thread::sleep(std::time::Duration::from_millis(50));
                 }
+            },
+            || {
+                imgbuf
+                    .par_enumerate_pixels_mut()
+                    .for_each_init(rand::rng, |rng, (x, y, pixel)| {
+                        let mut pixel_color = Vec3::ZERO;
+                        for _ in 0..self.samples_per_pixel {
+                            let ray = self.get_ray(x, y, rng);
+                            pixel_color += Self::ray_color(ray, self.max_depth, world, rng);
+                        }
 
-                *pixel = vec3_to_rgb8(self.pixel_samples_scale * pixel_color);
-            });
+                        *pixel = vec3_to_rgb8(self.pixel_samples_scale * pixel_color);
+                        pixels_done.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    });
+            },
+        );
+        eprintln!("");
+        eprintln!("Done.");
     }
 
     pub fn render(
@@ -68,7 +94,7 @@ impl Camera {
 
             let mut pixel_color = Vec3::ZERO;
             for _ in 0..self.samples_per_pixel {
-                let ray = self.get_ray(x as i32, y as i32, rng);
+                let ray = self.get_ray(x, y, rng);
                 pixel_color += Self::ray_color(ray, self.max_depth, world, rng);
             }
 
@@ -80,8 +106,8 @@ impl Camera {
     }
 
     pub fn new(
-        image_width: i32,
-        image_height: i32,
+        image_width: u32,
+        image_height: u32,
         vfov: f32,
         lookfrom: Vec3,
         lookat: Vec3,
@@ -151,7 +177,7 @@ impl Camera {
     }
 
     // Construct a camera ray originating from the defocus disk and directed at a randomly sampled point around the pixel location x, y
-    fn get_ray(&self, x: i32, y: i32, rng: &mut impl rand::Rng) -> Ray {
+    fn get_ray(&self, x: u32, y: u32, rng: &mut impl rand::Rng) -> Ray {
         let offset = Self::sample_square(rng);
         let pixel_sample = self.pixel00_loc
             + (x as f32 + offset.x) * self.pixel_delta_u
