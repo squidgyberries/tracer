@@ -1,3 +1,5 @@
+mod aabb;
+mod bvh;
 mod camera;
 mod color;
 mod hit;
@@ -10,6 +12,7 @@ mod util;
 
 use std::sync::Arc;
 
+use crate::bvh::BvhNode;
 use crate::camera::Camera;
 use crate::hittable_list::HittableList;
 use crate::material::{Material, SharedMaterial};
@@ -18,9 +21,6 @@ use crate::util::random_vec3;
 
 use glam::{Vec3, vec3};
 use rand::Rng;
-
-// const IMAGE_WIDTH: i32 = 800;
-// const IMAGE_HEIGHT: i32 = 600;
 
 fn cover() {
     let mut world = HittableList::new();
@@ -68,6 +68,9 @@ fn cover() {
     let material3 = SharedMaterial::new(Material::new_metal(vec3(0.7, 0.6, 0.5), 0.0));
     world.add(Arc::new(Sphere::new(vec3(4.0, 1.0, 0.0), 1.0, material3)));
 
+    let mut bvh_world = HittableList::new();
+    bvh_world.add(Arc::new(BvhNode::from_hittable_list(world)));
+
     let image_width = 800;
     let image_height = 600;
 
@@ -80,8 +83,8 @@ fn cover() {
         vec3(0.0, 1.0, 0.0),
         0.6,
         7.0,
-        100,
-        10,
+        500,
+        20,
     );
 
     let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
@@ -89,87 +92,14 @@ fn cover() {
     // rayon::ThreadPoolBuilder::new().num_threads(10).build_global().unwrap();
 
     // camera.render(&world, &mut imgbuf, &mut rng);
-    camera.render_threaded(&world, &mut imgbuf);
+    // camera.render_threaded(&world, &mut imgbuf);
+    camera.render_threaded(&bvh_world, &mut imgbuf);
+    // camera.render_threaded(&BvhNode::from_hittable_list(world), &mut imgbuf);
 
     imgbuf.save("output.png").unwrap();
 }
 
 fn main() {
     cover();
-    // World
-    // let mut world = HittableList::new();
-
-    // let r = (std::f32::consts::PI / 4.0).cos();
-
-    // let material_left =
-    //     SharedMaterial::new(Material::new_lambertian(vec3(0.0, 0.0, 1.0), Vec3::ONE));
-    // let material_right =
-    //     SharedMaterial::new(Material::new_lambertian(vec3(1.0, 0.0, 0.0), Vec3::ONE));
-
-    // world.add(Rc::new(Sphere::new(vec3(-r, 0.0, -1.0), r, material_left)));
-    // world.add(Rc::new(Sphere::new(vec3(r, 0.0, -1.0), r, material_right)));
-
-    // let material_ground =
-    //     SharedMaterial::new(Material::new_lambertian(vec3(0.8, 0.8, 0.0), Vec3::ONE));
-    // let material_center =
-    //     SharedMaterial::new(Material::new_lambertian(vec3(0.1, 0.2, 0.5), Vec3::ONE));
-    // let material_left = SharedMaterial::new(Material::new_dielectric(1.5));
-    // let material_left = SharedMaterial::new(Material::new_dielectric(1.50));
-    // let material_bubble = SharedMaterial::new(Material::new_dielectric(1.00 / 1.50));
-    // let material_right = SharedMaterial::new(Material::new_metal(vec3(0.8, 0.6, 0.2), 1.0));
-    // let material_top = SharedMaterial::new(Material::new_metal(vec3(0.9, 0.9, 0.9), 0.0));
-    // let material1 = SharedMaterial::new(Material::new_lambertian(vec3(0.0, 0.6, 0.7), Vec3::ONE));
-    // let material2 = SharedMaterial::new(Material::new_lambertian(vec3(0.8, 0.3, 0.3), Vec3::ONE));
-
-    // world.add(Rc::new(Sphere::new(
-    //     vec3(0.0, -100.5, -1.0),
-    //     100.0,
-    //     material_ground,
-    // )));
-    // world.add(Rc::new(Sphere::new(
-    //     vec3(0.0, 0.0, -1.2),
-    //     0.5,
-    //     material_center,
-    // )));
-    // world.add(Rc::new(Sphere::new(
-    //     vec3(-1.0, 0.0, -1.0),
-    //     0.5,
-    //     material_left,
-    // )));
-    // world.add(Rc::new(Sphere::new(
-    //     vec3(-1.0, 0.0, -1.0),
-    //     0.4,
-    //     material_bubble,
-    // )));
-    // world.add(Rc::new(Sphere::new(
-    //     vec3(1.0, 0.0, -1.0),
-    //     0.5,
-    //     material_right,
-    // )));
-    // world.add(Rc::new(Sphere::new(
-    //     vec3(0.0, 1.0, -1.0),
-    //     0.5,
-    //     material_top,
-    // )));
-
-    // let camera = Camera::new(
-    //     IMAGE_WIDTH,
-    //     IMAGE_HEIGHT,
-    //     20.0,
-    //     vec3(-2.0, 2.0, 1.0),
-    //     vec3(0.0, 0.0, -1.0),
-    //     vec3(0.0, 1.0, 0.0),
-    //     0.0,
-    //     3.4,
-    //     100,
-    //     50,
-    // );
-
-    // let mut rng = rand::rng(); // move to camera?
-
-    // let mut imgbuf = image::ImageBuffer::new(IMAGE_WIDTH as u32, IMAGE_HEIGHT as u32);
-
-    // camera.render(&world, &mut imgbuf, &mut rng);
-
-    // imgbuf.save("output.png").unwrap();
+    // thing();
 }

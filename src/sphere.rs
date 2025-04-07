@@ -1,3 +1,4 @@
+use crate::aabb::Aabb;
 use crate::hit::{HitRecord, Hittable};
 use crate::interval::Interval;
 use crate::material::SharedMaterial;
@@ -10,15 +11,19 @@ pub struct Sphere {
     center: Vec3,
     radius: f32,
     material: SharedMaterial,
+    bbox: Aabb,
 }
 
 impl Sphere {
     #[inline(always)]
-    pub const fn new(center: Vec3, radius: f32, material: SharedMaterial) -> Self {
+    pub fn new(center: Vec3, radius: f32, material: SharedMaterial) -> Self {
+        let r = radius.max(0.0);
+        let rvec = Vec3::splat(r);
         Self {
             center,
-            radius: radius.max(0.0),
+            radius: r,
             material,
+            bbox: Aabb::from_corners(center - rvec, center + rvec),
         }
     }
 }
@@ -54,5 +59,10 @@ impl Hittable for Sphere {
         hit_record.t = root;
         hit_record.set_face_normal(ray, outward_normal);
         true
+    }
+
+    #[inline(always)]
+    fn bounding_box(&self) -> Aabb {
+        self.bbox
     }
 }

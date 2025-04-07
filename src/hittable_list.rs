@@ -1,24 +1,28 @@
 use std::sync::Arc;
 
+use crate::aabb::Aabb;
 use crate::hit::{HitRecord, Hittable};
 use crate::interval::Interval;
 use crate::ray::Ray;
 
 pub struct HittableList {
     pub objects: Vec<Arc<dyn Hittable + Send + Sync>>,
+    pub bbox: Aabb,
 }
 
 impl HittableList {
     #[inline(always)]
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             objects: Vec::new(),
+            bbox: Aabb::EMPTY,
         }
     }
 
     #[inline(always)]
     pub fn add(&mut self, object: Arc<dyn Hittable + Send + Sync>) {
-        self.objects.push(object);
+        self.objects.push(object.clone());
+        self.bbox.merge_into(object.bounding_box());
     }
 }
 
@@ -39,5 +43,9 @@ impl Hittable for HittableList {
         }
 
         hit
+    }
+
+    fn bounding_box(&self) -> Aabb {
+        self.bbox
     }
 }

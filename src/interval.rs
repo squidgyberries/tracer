@@ -5,9 +5,18 @@ pub struct Interval {
 }
 
 impl Interval {
+    pub const EMPTY: Self = Self::new(f32::INFINITY, f32::NEG_INFINITY);
+    
+    pub const UNIVERSE: Self = Self::new(f32::NEG_INFINITY, f32::INFINITY);
+
     #[inline(always)]
     pub const fn new(min: f32, max: f32) -> Self {
         Self { min, max }
+    }
+
+    #[inline(always)]
+    pub const fn enclosing(a: Self, b: Self) -> Self {
+        Self::new(a.min.min(b.min), a.max.max(b.max))
     }
 
     #[inline(always)]
@@ -35,14 +44,10 @@ impl Interval {
         }
         x
     }
-}
 
-impl Default for Interval {
     #[inline(always)]
-    fn default() -> Self {
-        Self {
-            min: f32::NEG_INFINITY,
-            max: f32::INFINITY,
-        }
+    pub const fn expand(&self, delta: f32) -> Self {
+        let padding = delta / 2.0;
+        Self::new(self.min - padding, self.max + padding)
     }
 }
