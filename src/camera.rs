@@ -1,10 +1,12 @@
 use std::sync::atomic::AtomicU32;
 
-use crate::color::vec3_to_rgb8;
-use crate::hit::{HitRecord, Hittable};
-use crate::interval::Interval;
-use crate::ray::Ray;
-use crate::util::{deg_to_rad, random_in_unit_disk};
+use crate::{
+    color::vec3_to_rgb8,
+    hit::{HitRecord, Hittable},
+    interval::Interval,
+    ray::Ray,
+    util::{deg_to_rad, random_in_unit_disk},
+};
 
 use glam::{Vec3, vec3};
 use rayon::iter::ParallelIterator;

@@ -1,16 +1,14 @@
-use crate::aabb::Aabb;
-use crate::interval::Interval;
-use crate::material::SharedMaterial;
-use crate::ray::Ray;
+use crate::{aabb::Aabb, interval::Interval, material::SharedMaterial, ray::Ray};
 
-use glam::Vec3;
+use glam::{Vec2, Vec3};
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default)]
 pub struct HitRecord {
     pub point: Vec3,
     normal: Vec3,
     pub material: SharedMaterial,
     pub t: f32,
+    pub uv: Vec2,
     front_face: bool,
 }
 

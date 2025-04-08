@@ -1,14 +1,17 @@
 use std::sync::Arc;
 
-use crate::hit::HitRecord;
-use crate::ray::Ray;
-use crate::util::{random_unit_vec3, vec3_near_zero};
+use crate::{
+    hit::HitRecord,
+    ray::Ray,
+    texture::{SolidColor, Texture},
+    util::{random_unit_vec3, vec3_near_zero},
+};
 
-use glam::{Vec3, vec3};
+use glam::Vec3;
 
-const DEFAULT_MATERIAL: Material = Material::new_lambertian(vec3(1.0, 0.0, 1.0), Vec3::ONE);
+// const DEFAULT_MATERIAL: Material = Material::new_lambertian(vec3(1.0, 0.0, 1.0), Vec3::ONE);
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone)]
 pub enum Material {
     Lambertian(LambertianMaterial),
     Metal(MetalMaterial),
@@ -31,13 +34,13 @@ impl Material {
     }
 
     #[inline(always)]
-    pub const fn new_lambertian(albedo: Vec3, diffuse_p: Vec3) -> Self {
-        Self::Lambertian(LambertianMaterial::new(albedo, diffuse_p))
+    pub fn new_lambertian(texture: Arc<dyn Texture + Send + Sync>, diffuse_p: Vec3) -> Self {
+        Self::Lambertian(LambertianMaterial::new(texture, diffuse_p))
     }
 
     #[inline(always)]
-    pub const fn new_metal(albedo: Vec3, fuzz: f32) -> Self {
-        Self::Metal(MetalMaterial::new(albedo, fuzz))
+    pub fn new_metal(texture: Arc<dyn Texture + Send + Sync>, fuzz: f32) -> Self {
+        Self::Metal(MetalMaterial::new(texture, fuzz))
     }
 
     #[inline(always)]
@@ -49,13 +52,13 @@ impl Material {
 impl Default for Material {
     #[inline(always)]
     fn default() -> Self {
-        DEFAULT_MATERIAL
+        Self::new_lambertian(Arc::new(SolidColor::from_rgb(1.0, 0.0, 1.0)), Vec3::ONE)
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Default)]
 pub struct SharedMaterial {
-    inner: Arc<Material>,
+    pub inner: Arc<Material>,
 }
 
 impl SharedMaterial {
@@ -76,30 +79,21 @@ impl std::ops::Deref for SharedMaterial {
     }
 }
 
-impl Default for SharedMaterial {
-    #[inline(always)]
-    fn default() -> Self {
-        Self {
-            inner: Arc::new(DEFAULT_MATERIAL),
-        }
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone)]
 pub struct LambertianMaterial {
-    albedo: Vec3,
-    diffuse_p: Vec3,
+    pub texture: Arc<dyn Texture + Send + Sync>,
+    pub diffuse_p: Vec3,
 }
 
 impl LambertianMaterial {
     #[inline(always)]
-    pub const fn new(albedo: Vec3, diffuse_p: Vec3) -> Self {
-        Self { albedo, diffuse_p }
+    pub fn new(texture: Arc<dyn Texture + Send + Sync>, diffuse_p: Vec3) -> Self {
+        Self { texture, diffuse_p }
     }
 
     pub fn scatter(
         &self,
-        ray_in: Ray,
+        _ray_in: Ray,
         hit_record: &HitRecord,
         rng: &mut impl rand::Rng,
     ) -> (bool, Vec3, Ray) {
@@ -109,21 +103,26 @@ impl LambertianMaterial {
             scatter_direction = hit_record.get_normal();
         }
 
-        let mut attenuation = Vec3::ZERO;
-        let random_scatter: f32 = rng.random();
-        let scatter_r = random_scatter < self.diffuse_p.x;
-        let scatter_g = random_scatter < self.diffuse_p.y;
-        let scatter_b = random_scatter < self.diffuse_p.z;
+        // let mut attenuation = Vec3::ZERO;
+        // let random_scatter: f32 = rng.random();
+        // let scatter_r = random_scatter < self.diffuse_p.x;
+        // let scatter_g = random_scatter < self.diffuse_p.y;
+        // let scatter_b = random_scatter < self.diffuse_p.z;
 
-        if scatter_r {
-            attenuation.x = self.albedo.x / self.diffuse_p.x;
-        }
-        if scatter_g {
-            attenuation.y = self.albedo.y / self.diffuse_p.y;
-        }
-        if scatter_b {
-            attenuation.z = self.albedo.z / self.diffuse_p.z;
-        }
+        // if scatter_r {
+        //     attenuation.x =
+        //         self.texture.value(hit_record.uv, hit_record.point).x / self.diffuse_p.x;
+        // }
+        // if scatter_g {
+        //     attenuation.y =
+        //         self.texture.value(hit_record.uv, hit_record.point).y / self.diffuse_p.y;
+        // }
+        // if scatter_b {
+        //     attenuation.z =
+        //         self.texture.value(hit_record.uv, hit_record.point).z / self.diffuse_p.z;
+        // }
+        let (scatter_r, scatter_g, scatter_b) = (true, true, true);
+        let attenuation = self.texture.value(hit_record.uv, hit_record.point);
 
         (
             scatter_r || scatter_g || scatter_b,
@@ -133,16 +132,16 @@ impl LambertianMaterial {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone)]
 pub struct MetalMaterial {
-    albedo: Vec3,
-    fuzz: f32,
+    pub texture: Arc<dyn Texture + Send + Sync>,
+    pub fuzz: f32,
 }
 
 impl MetalMaterial {
     #[inline(always)]
-    pub const fn new(albedo: Vec3, fuzz: f32) -> Self {
-        Self { albedo, fuzz }
+    pub const fn new(texture: Arc<dyn Texture + Send + Sync>, fuzz: f32) -> Self {
+        Self { texture, fuzz }
     }
 
     pub fn scatter(
@@ -153,13 +152,17 @@ impl MetalMaterial {
     ) -> (bool, Vec3, Ray) {
         let mut reflected = ray_in.direction.reflect(hit_record.get_normal());
         reflected = reflected.normalize() + (self.fuzz * random_unit_vec3(rng));
-        (true, self.albedo, Ray::new(hit_record.point, reflected))
+        (
+            true,
+            self.texture.value(hit_record.uv, hit_record.point),
+            Ray::new(hit_record.point, reflected),
+        )
     }
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct DielectricMaterial {
-    refraction_index: f32,
+    pub refraction_index: f32,
 }
 
 impl DielectricMaterial {

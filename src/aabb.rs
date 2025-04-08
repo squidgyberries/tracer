@@ -6,9 +6,9 @@ use glam::Vec3;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Aabb {
-    x: Interval,
-    y: Interval,
-    z: Interval,
+    pub x: Interval,
+    pub y: Interval,
+    pub z: Interval,
 }
 
 impl Aabb {

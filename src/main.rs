@@ -8,16 +8,20 @@ mod interval;
 mod material;
 mod ray;
 mod sphere;
+mod texture;
 mod util;
 
 use std::sync::Arc;
 
-use crate::bvh::BvhNode;
-use crate::camera::Camera;
-use crate::hittable_list::HittableList;
-use crate::material::{Material, SharedMaterial};
-use crate::sphere::Sphere;
-use crate::util::random_vec3;
+use crate::{
+    bvh::BvhNode,
+    camera::Camera,
+    hittable_list::HittableList,
+    material::{Material, SharedMaterial},
+    sphere::Sphere,
+    texture::SolidColor,
+    util::random_vec3,
+};
 
 use glam::{Vec3, vec3};
 use rand::Rng;
@@ -25,8 +29,10 @@ use rand::Rng;
 fn cover() {
     let mut world = HittableList::new();
 
-    let ground_material =
-        SharedMaterial::new(Material::new_lambertian(vec3(0.5, 0.5, 0.5), Vec3::ONE));
+    let ground_material = SharedMaterial::new(Material::new_lambertian(
+        Arc::new(SolidColor::from_rgb(0.5, 0.5, 0.5)),
+        Vec3::ONE,
+    ));
     world.add(Arc::new(Sphere::new(
         vec3(0.0, -1000.0, 0.0),
         1000.0,
@@ -47,11 +53,14 @@ fn cover() {
             let material = if random_mat < 0.5 {
                 let albedo = random_vec3(Vec3::ZERO, Vec3::ONE, &mut rng)
                     * random_vec3(Vec3::ZERO, Vec3::ONE, &mut rng);
-                SharedMaterial::new(Material::new_lambertian(albedo, Vec3::ONE))
+                SharedMaterial::new(Material::new_lambertian(
+                    Arc::new(SolidColor::new(albedo)),
+                    Vec3::ONE,
+                ))
             } else if random_mat < 0.75 {
                 let albedo = random_vec3(Vec3::splat(0.5), Vec3::ONE, &mut rng);
                 let fuzz = rng.random_range(0.0..0.5);
-                SharedMaterial::new(Material::new_metal(albedo, fuzz))
+                SharedMaterial::new(Material::new_metal(Arc::new(SolidColor::new(albedo)), fuzz))
             } else {
                 SharedMaterial::new(Material::new_dielectric(1.5))
             };
@@ -62,10 +71,16 @@ fn cover() {
     let material1 = SharedMaterial::new(Material::new_dielectric(1.5));
     world.add(Arc::new(Sphere::new(vec3(0.0, 1.0, 0.0), 1.0, material1)));
 
-    let material2 = SharedMaterial::new(Material::new_lambertian(vec3(0.4, 0.2, 0.1), Vec3::ONE));
+    let material2 = SharedMaterial::new(Material::new_lambertian(
+        Arc::new(SolidColor::from_rgb(0.4, 0.2, 0.1)),
+        Vec3::ONE,
+    ));
     world.add(Arc::new(Sphere::new(vec3(-4.0, 1.0, 0.0), 1.0, material2)));
 
-    let material3 = SharedMaterial::new(Material::new_metal(vec3(0.7, 0.6, 0.5), 0.0));
+    let material3 = SharedMaterial::new(Material::new_metal(
+        Arc::new(SolidColor::from_rgb(0.7, 0.6, 0.5)),
+        0.0,
+    ));
     world.add(Arc::new(Sphere::new(vec3(4.0, 1.0, 0.0), 1.0, material3)));
 
     let mut bvh_world = HittableList::new();

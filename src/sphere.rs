@@ -1,16 +1,18 @@
-use crate::aabb::Aabb;
-use crate::hit::{HitRecord, Hittable};
-use crate::interval::Interval;
-use crate::material::SharedMaterial;
-use crate::ray::Ray;
+use crate::{
+    aabb::Aabb,
+    hit::{HitRecord, Hittable},
+    interval::Interval,
+    material::SharedMaterial,
+    ray::Ray,
+};
 
 use glam::Vec3;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Sphere {
-    center: Vec3,
-    radius: f32,
-    material: SharedMaterial,
+    pub center: Vec3,
+    pub radius: f32,
+    pub material: SharedMaterial,
     bbox: Aabb,
 }
 

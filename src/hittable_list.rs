@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
-use crate::aabb::Aabb;
-use crate::hit::{HitRecord, Hittable};
-use crate::interval::Interval;
-use crate::ray::Ray;
+use crate::{
+    aabb::Aabb,
+    hit::{HitRecord, Hittable},
+    interval::Interval,
+    ray::Ray,
+};
 
 pub struct HittableList {
     pub objects: Vec<Arc<dyn Hittable + Send + Sync>>,
-    pub bbox: Aabb,
+    bbox: Aabb,
 }
 
 impl HittableList {
