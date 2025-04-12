@@ -1,24 +1,26 @@
+use std::sync::Arc;
+
 use crate::{
     aabb::Aabb,
     hit::{HitRecord, Hittable},
     interval::Interval,
-    material::SharedMaterial,
+    material::Material,
     ray::Ray,
 };
 
-use glam::Vec3;
+use glam::{Vec2, Vec3};
 
 #[derive(Clone)]
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f32,
-    pub material: SharedMaterial,
+    pub material: Arc<Material>,
     bbox: Aabb,
 }
 
 impl Sphere {
     #[inline(always)]
-    pub fn new(center: Vec3, radius: f32, material: SharedMaterial) -> Self {
+    pub fn new(center: Vec3, radius: f32, material: Arc<Material>) -> Self {
         let r = radius.max(0.0);
         let rvec = Vec3::splat(r);
         Self {
@@ -27,6 +29,19 @@ impl Sphere {
             material,
             bbox: Aabb::from_corners(center - rvec, center + rvec),
         }
+    }
+
+    pub fn get_sphere_uv(point: Vec3) -> Vec2 {
+        // point: point on sphere of radius one centered at origin
+        // u: [0,1] of angle around y axis from x=-1.
+        // v: [0,1] of angle from y=-1 to y=+1.
+        let theta = (-point.y).acos();
+        let phi = (-point.z).atan2(point.x) + std::f32::consts::PI;
+
+        Vec2::new(
+            phi / (2.0 * std::f32::consts::PI),
+            theta / std::f32::consts::PI,
+        )
     }
 }
 
@@ -60,6 +75,7 @@ impl Hittable for Sphere {
         hit_record.point = point;
         hit_record.t = root;
         hit_record.set_face_normal(ray, outward_normal);
+        hit_record.uv = Self::get_sphere_uv(outward_normal);
         true
     }
 

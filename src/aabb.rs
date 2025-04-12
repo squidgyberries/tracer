@@ -14,8 +14,11 @@ pub struct Aabb {
 impl Aabb {
     pub const EMPTY: Aabb = Aabb::new(Interval::EMPTY, Interval::EMPTY, Interval::EMPTY);
 
-    pub const UNIVERSE: Aabb =
-        Aabb::new(Interval::UNIVERSE, Interval::UNIVERSE, Interval::UNIVERSE);
+    pub const EVERYTHING: Aabb = Aabb::new(
+        Interval::EVERYTHING,
+        Interval::EVERYTHING,
+        Interval::EVERYTHING,
+    );
 
     #[inline(always)]
     pub const fn new(x: Interval, y: Interval, z: Interval) -> Self {

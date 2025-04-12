@@ -9,8 +9,6 @@ use crate::{
 
 use glam::Vec3;
 
-// const DEFAULT_MATERIAL: Material = Material::new_lambertian(vec3(1.0, 0.0, 1.0), Vec3::ONE);
-
 #[derive(Clone)]
 pub enum Material {
     Lambertian(LambertianMaterial),
@@ -56,29 +54,6 @@ impl Default for Material {
     }
 }
 
-#[derive(Clone, Default)]
-pub struct SharedMaterial {
-    pub inner: Arc<Material>,
-}
-
-impl SharedMaterial {
-    #[inline(always)]
-    pub fn new(material: Material) -> Self {
-        Self {
-            inner: Arc::new(material),
-        }
-    }
-}
-
-impl std::ops::Deref for SharedMaterial {
-    type Target = Material;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        self.inner.deref()
-    }
-}
-
 #[derive(Clone)]
 pub struct LambertianMaterial {
     pub texture: Arc<dyn Texture + Send + Sync>,
@@ -103,26 +78,22 @@ impl LambertianMaterial {
             scatter_direction = hit_record.get_normal();
         }
 
-        // let mut attenuation = Vec3::ZERO;
-        // let random_scatter: f32 = rng.random();
-        // let scatter_r = random_scatter < self.diffuse_p.x;
-        // let scatter_g = random_scatter < self.diffuse_p.y;
-        // let scatter_b = random_scatter < self.diffuse_p.z;
+        let mut attenuation = Vec3::ZERO;
+        let random_scatter: f32 = rng.random();
+        let scatter_r = random_scatter < self.diffuse_p.x;
+        let scatter_g = random_scatter < self.diffuse_p.y;
+        let scatter_b = random_scatter < self.diffuse_p.z;
+        let texture_value = self.texture.value(hit_record.uv, hit_record.point);
 
-        // if scatter_r {
-        //     attenuation.x =
-        //         self.texture.value(hit_record.uv, hit_record.point).x / self.diffuse_p.x;
-        // }
-        // if scatter_g {
-        //     attenuation.y =
-        //         self.texture.value(hit_record.uv, hit_record.point).y / self.diffuse_p.y;
-        // }
-        // if scatter_b {
-        //     attenuation.z =
-        //         self.texture.value(hit_record.uv, hit_record.point).z / self.diffuse_p.z;
-        // }
-        let (scatter_r, scatter_g, scatter_b) = (true, true, true);
-        let attenuation = self.texture.value(hit_record.uv, hit_record.point);
+        if scatter_r {
+            attenuation.x = texture_value.x / self.diffuse_p.x;
+        }
+        if scatter_g {
+            attenuation.y = texture_value.y / self.diffuse_p.y;
+        }
+        if scatter_b {
+            attenuation.z = texture_value.z / self.diffuse_p.z;
+        }
 
         (
             scatter_r || scatter_g || scatter_b,

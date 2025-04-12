@@ -6,8 +6,8 @@ pub struct Interval {
 
 impl Interval {
     pub const EMPTY: Self = Self::new(f32::INFINITY, f32::NEG_INFINITY);
-    
-    pub const UNIVERSE: Self = Self::new(f32::NEG_INFINITY, f32::INFINITY);
+
+    pub const EVERYTHING: Self = Self::new(f32::NEG_INFINITY, f32::INFINITY);
 
     #[inline(always)]
     pub const fn new(min: f32, max: f32) -> Self {
