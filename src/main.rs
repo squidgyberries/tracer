@@ -19,7 +19,7 @@ use crate::{
     hittable_list::HittableList,
     material::Material,
     sphere::Sphere,
-    texture::{SolidColor, SpatialChecker, ImageTexture},
+    texture::{ImageTexture, SolidColor, SpatialChecker},
     util::random_vec3,
 };
 
@@ -77,7 +77,7 @@ fn spheres() {
     world.add(Arc::new(Sphere::new(vec3(0.0, 1.0, 0.0), 1.0, material1)));
 
     let earth_texture = Arc::new(ImageTexture::load("8081_earthmap10k.jpg").unwrap());
-    let earth_material = Arc::new(Material::new_lambertian(earth_texture, Vec3::ONE));
+    let earth_material = Arc::new(Material::new_lambertian(earth_texture.clone(), Vec3::ONE));
     let globe = Sphere::new(vec3(-4.0, 1.0, 0.0), 1.0, earth_material);
     // let material2 = Arc::new(Material::new_lambertian(
     //     Arc::new(SolidColor::from_rgb(0.4, 0.2, 0.1)),
@@ -85,10 +85,11 @@ fn spheres() {
     // ));
     world.add(Arc::new(globe));
 
-    let material3 = Arc::new(Material::new_metal(
-        Arc::new(SolidColor::from_rgb(0.7, 0.6, 0.5)),
-        0.0,
-    ));
+    // let material3 = Arc::new(Material::new_metal(
+    //     Arc::new(SolidColor::from_rgb(0.7, 0.6, 0.5)),
+    //     0.0,
+    // ));
+    let material3 = Arc::new(Material::new_metal(earth_texture, 0.0));
     world.add(Arc::new(Sphere::new(vec3(4.0, 1.0, 0.0), 1.0, material3)));
 
     let bvh = BvhNode::from_hittable_list(world);
@@ -106,7 +107,7 @@ fn spheres() {
         0.6,
         7.0,
         500,
-        50,
+        10,
     );
 
     let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);

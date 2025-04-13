@@ -22,7 +22,9 @@ impl Aabb {
 
     #[inline(always)]
     pub const fn new(x: Interval, y: Interval, z: Interval) -> Self {
-        Self { x, y, z }
+        let mut out = Self { x, y, z };
+        out.pad_to_mins();
+        out
     }
 
     #[inline(always)]
@@ -38,7 +40,7 @@ impl Aabb {
     }
 
     #[inline(always)]
-    pub const fn merge(a: Self, b: Self) -> Self {
+    pub const fn merged(a: Self, b: Self) -> Self {
         Self::new(
             Interval::enclosing(a.x, b.x),
             Interval::enclosing(a.y, b.y),
@@ -47,10 +49,46 @@ impl Aabb {
     }
 
     #[inline(always)]
-    pub const fn merge_into(&mut self, other: Self) {
+    pub const fn merge(&mut self, other: Self) {
         self.x = Interval::enclosing(self.x, other.x);
         self.y = Interval::enclosing(self.y, other.y);
         self.z = Interval::enclosing(self.z, other.z);
+    }
+
+    #[inline(always)]
+    pub const fn pad_to_mins(&mut self) {
+        const DELTA: f32 = 0.0001;
+        if self.x.size() < DELTA {
+            self.x.expand(DELTA);
+        }
+        if self.y.size() < DELTA {
+            self.y.expand(DELTA);
+        }
+        if self.z.size() < DELTA {
+            self.z.expand(DELTA);
+        }
+    }
+
+    #[inline(always)]
+    pub const fn padded_to_mins(&self) -> Self {
+        const DELTA: f32 = 0.0001;
+        Self::new(
+            if self.x.size() < DELTA {
+                self.x.expanded(DELTA)
+            } else {
+                self.x
+            },
+            if self.y.size() < DELTA {
+                self.y.expanded(DELTA)
+            } else {
+                self.y
+            },
+            if self.z.size() < DELTA {
+                self.z.expanded(DELTA)
+            } else {
+                self.z
+            },
+        )
     }
 
     pub fn hit(&self, ray: Ray, mut ray_t: Interval) -> bool {

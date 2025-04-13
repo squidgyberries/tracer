@@ -46,8 +46,15 @@ impl Interval {
     }
 
     #[inline(always)]
-    pub const fn expand(&self, delta: f32) -> Self {
-        let padding = delta / 2.0;
+    pub const fn expand(&mut self, delta: f32) {
+        let padding = delta * 0.5;
+        self.min -= padding;
+        self.max += padding;
+    }
+
+    #[inline(always)]
+    pub const fn expanded(&self, delta: f32) -> Self {
+        let padding = delta * 0.5;
         Self::new(self.min - padding, self.max + padding)
     }
 }

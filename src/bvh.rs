@@ -22,7 +22,7 @@ impl BvhNode {
     ) -> Self {
         let mut bbox = Aabb::EMPTY;
         for object in &objects[start..end] {
-            bbox.merge_into(object.bounding_box());
+            bbox.merge(object.bounding_box());
         }
 
         let axis = bbox.longest_axis();

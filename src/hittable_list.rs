@@ -24,7 +24,7 @@ impl HittableList {
     #[inline(always)]
     pub fn add(&mut self, object: Arc<dyn Hittable + Send + Sync>) {
         self.objects.push(object.clone());
-        self.bbox.merge_into(object.bounding_box());
+        self.bbox.merge(object.bounding_box());
     }
 }
 

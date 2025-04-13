@@ -88,8 +88,8 @@ impl ImageTexture {
 
 impl Texture for ImageTexture {
     fn value(&self, mut uv: Vec2, _point: Vec3) -> Vec3 {
-        uv.x = Interval::new(0.0, 1.0).clamp(uv.x);
-        uv.y = 1.0 - Interval::new(0.0, 1.0).clamp(uv.y);
+        uv.x = Interval::new(0.0, 0.999).clamp(uv.x);
+        uv.y = 1.0 - Interval::new(0.001, 1.0).clamp(uv.y);
 
         let x = (uv.x * self.image.width() as f32) as u32;
         let y = (uv.y * self.image.height() as f32) as u32;
