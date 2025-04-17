@@ -6,6 +6,7 @@ mod hit;
 mod hittable_list;
 mod interval;
 mod material;
+mod quad;
 mod ray;
 mod sphere;
 mod texture;
@@ -18,6 +19,7 @@ use crate::{
     camera::Camera,
     hittable_list::HittableList,
     material::Material,
+    quad::Quad,
     sphere::Sphere,
     texture::{ImageTexture, SolidColor, SpatialChecker},
     util::random_vec3,
@@ -194,11 +196,90 @@ fn earth() {
     imgbuf.save("output.png").unwrap();
 }
 
+fn quads() {
+    let mut world = HittableList::new();
+
+    let left_red = Arc::new(Material::new_lambertian(
+        Arc::new(SolidColor::from_rgb(1.0, 0.2, 0.2)),
+        Vec3::ONE,
+    ));
+    let back_green = Arc::new(Material::new_lambertian(
+        Arc::new(SolidColor::from_rgb(0.2, 1.0, 0.2)),
+        Vec3::ONE,
+    ));
+    let right_blue = Arc::new(Material::new_lambertian(
+        Arc::new(SolidColor::from_rgb(0.2, 0.2, 1.0)),
+        Vec3::ONE,
+    ));
+    let top_orange = Arc::new(Material::new_lambertian(
+        Arc::new(SolidColor::from_rgb(1.0, 0.5, 0.0)),
+        Vec3::ONE,
+    ));
+    let bottom_teal = Arc::new(Material::new_lambertian(
+        Arc::new(SolidColor::from_rgb(0.2, 0.8, 0.8)),
+        Vec3::ONE,
+    ));
+
+    world.add(Arc::new(Quad::new(
+        vec3(-3.0, -2.0, 5.0),
+        vec3(0.0, 0.0, -4.0),
+        vec3(0.0, 4.0, 0.0),
+        left_red,
+    )));
+    world.add(Arc::new(Quad::new(
+        vec3(-2.0, -2.0, 0.0),
+        vec3(4.0, 0.0, 0.0),
+        vec3(0.0, 4.0, 0.0),
+        back_green,
+    )));
+    world.add(Arc::new(Quad::new(
+        vec3(3.0, -2.0, 1.0),
+        vec3(0.0, 0.0, 4.0),
+        vec3(0.0, 4.0, 0.0),
+        right_blue,
+    )));
+    world.add(Arc::new(Quad::new(
+        vec3(-2.0, 3.0, 1.0),
+        vec3(4.0, 0.0, 0.0),
+        vec3(0.0, 0.0, 4.0),
+        top_orange,
+    )));
+    world.add(Arc::new(Quad::new(
+        vec3(-2.0,-3.0, 5.0),
+        vec3(4.0, 0.0, 0.0),
+        vec3(0.0, 0.0, -4.0),
+        bottom_teal,
+    )));
+
+    let image_width = 800;
+    let image_height = 800;
+
+    let camera = Camera::new(
+        image_width,
+        image_height,
+        80.0,
+        vec3(0.0, 0.0, 9.0),
+        vec3(0.0, 0.0, 0.0),
+        vec3(0.0, 1.0, 0.0),
+        0.0,
+        7.0,
+        100,
+        50,
+    );
+
+    let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
+
+    camera.render_threaded(&world, &mut imgbuf);
+
+    imgbuf.save("output.png").unwrap();
+}
+
 fn main() {
-    match 1 {
+    match 4 {
         1 => spheres(),
         2 => checkered_spheres(),
         3 => earth(),
+        4 => quads(),
         _ => spheres(),
     }
 }

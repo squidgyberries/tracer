@@ -1,4 +1,4 @@
-use glam::{Vec2, Vec3, vec2, vec3};
+use glam::{Vec2, Vec3};
 
 #[inline(always)]
 pub fn deg_to_rad(deg: f32) -> f32 {
@@ -12,7 +12,7 @@ pub fn rad_to_deg(rad: f32) -> f32 {
 
 #[inline(always)]
 pub fn random_vec3(min: Vec3, max: Vec3, rng: &mut impl rand::Rng) -> Vec3 {
-    vec3(
+    Vec3::new(
         rng.random_range(min.x..=max.x),
         rng.random_range(min.y..=max.y),
         rng.random_range(min.z..=max.z),
@@ -23,7 +23,7 @@ pub fn random_vec3(min: Vec3, max: Vec3, rng: &mut impl rand::Rng) -> Vec3 {
 pub fn random_unit_vec3(rng: &mut impl rand::Rng) -> Vec3 {
     let theta = rng.random_range(0.0..(2.0 * std::f32::consts::PI));
     let z: f32 = rng.random_range(-1.0..1.0);
-    vec3(
+    Vec3::new(
         (1.0 - z * z).sqrt() * theta.cos(),
         (1.0 - z * z).sqrt() * theta.sin(),
         z,
@@ -40,7 +40,7 @@ pub fn random_on_hemisphere(normal: Vec3, rng: &mut impl rand::Rng) -> Vec3 {
 pub fn random_in_unit_disk(rng: &mut impl rand::Rng) -> Vec2 {
     let theta = rng.random_range(0.0..(2.0 * std::f32::consts::PI));
     let r = rng.random_range(0.0 as f32..=1.0 as f32).sqrt();
-    vec2(r * theta.cos(), r * theta.sin())
+    Vec2::new(r * theta.cos(), r * theta.sin())
 }
 
 #[inline(always)]

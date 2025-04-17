@@ -8,7 +8,7 @@ use crate::{
     util::{deg_to_rad, random_in_unit_disk},
 };
 
-use glam::{Vec3, vec3};
+use glam::Vec3;
 use rayon::iter::ParallelIterator;
 
 #[derive(Debug)]
@@ -199,7 +199,7 @@ impl Camera {
     // random point in [-0.5, -0.5]-[+0.5, +0.5] unit square
     #[inline(always)]
     fn sample_square(rng: &mut impl rand::Rng) -> Vec3 {
-        vec3(
+        Vec3::new(
             rng.random_range(-0.5..=0.5),
             rng.random_range(-0.5..=0.5),
             0.0,
@@ -231,8 +231,8 @@ impl Camera {
 
         let unit_direction = ray.direction.normalize();
         let a = 0.5 * (unit_direction.y + 1.0);
-        (1.0 - a) * Vec3::ONE + a * vec3(0.5, 0.7, 1.0)
-        // (1.0 - a) * Vec3::ONE + a * vec3(1.0, 0.5, 0.5)
+        (1.0 - a) * Vec3::ONE + a * Vec3::new(0.5, 0.7, 1.0)
+        // (1.0 - a) * Vec3::ONE + a * Vec3::new(1.0, 0.5, 0.5)
         // Vec3::ONE
     }
 }
