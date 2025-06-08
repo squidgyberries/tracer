@@ -10,22 +10,16 @@ mod quad;
 mod ray;
 mod sphere;
 mod texture;
+mod triangle;
 mod util;
 
 use std::sync::Arc;
 
 use crate::{
-    bvh::BvhNode,
-    camera::Camera,
-    hittable_list::HittableList,
-    material::Material,
-    quad::Quad,
-    sphere::Sphere,
-    texture::{ImageTexture, SolidColor, SpatialChecker},
-    util::random_vec3,
+    bvh::BvhNode, camera::Camera, hittable_list::HittableList, material::Material, quad::Quad, sphere::Sphere, texture::{ImageTexture, SolidColor, SpatialChecker}, triangle::Triangle, util::random_vec3
 };
 
-use glam::{Vec3, vec3};
+use glam::{vec2, vec3, Vec3};
 use rand::Rng;
 
 fn spheres() {
@@ -203,8 +197,12 @@ fn quads() {
         Arc::new(SolidColor::from_rgb(1.0, 0.2, 0.2)),
         Vec3::ONE,
     ));
-    let back_green = Arc::new(Material::new_lambertian(
-        Arc::new(SolidColor::from_rgb(0.2, 1.0, 0.2)),
+    // let back_green = Arc::new(Material::new_lambertian(
+    //     Arc::new(SolidColor::from_rgb(0.2, 1.0, 0.2)),
+    //     Vec3::ONE,
+    // ));
+    let back_earth = Arc::new(Material::new_lambertian(
+        Arc::new(ImageTexture::load("8081_earthmap10k.jpg").unwrap()),
         Vec3::ONE,
     ));
     let right_blue = Arc::new(Material::new_lambertian(
@@ -224,30 +222,42 @@ fn quads() {
         vec3(-3.0, -2.0, 5.0),
         vec3(0.0, 0.0, -4.0),
         vec3(0.0, 4.0, 0.0),
+        [vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0)],
         left_red,
     )));
-    world.add(Arc::new(Quad::new(
+    // world.add(Arc::new(Quad::new(
+    //     vec3(-2.0, -2.0, 0.0),
+    //     vec3(4.0, 0.0, 0.0),
+    //     vec3(0.0, 4.0, 0.0),
+    //     [vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0)],
+    //     back_earth,
+    // )));
+    world.add(Arc::new(Triangle::new(
         vec3(-2.0, -2.0, 0.0),
         vec3(4.0, 0.0, 0.0),
         vec3(0.0, 4.0, 0.0),
-        back_green,
+        [vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0)],
+        back_earth
     )));
     world.add(Arc::new(Quad::new(
         vec3(3.0, -2.0, 1.0),
         vec3(0.0, 0.0, 4.0),
         vec3(0.0, 4.0, 0.0),
+        [vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0)],
         right_blue,
     )));
     world.add(Arc::new(Quad::new(
         vec3(-2.0, 3.0, 1.0),
         vec3(4.0, 0.0, 0.0),
         vec3(0.0, 0.0, 4.0),
+        [vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0)],
         top_orange,
     )));
     world.add(Arc::new(Quad::new(
         vec3(-2.0,-3.0, 5.0),
         vec3(4.0, 0.0, 0.0),
         vec3(0.0, 0.0, -4.0),
+        [vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0)],
         bottom_teal,
     )));
 
