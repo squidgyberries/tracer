@@ -9,6 +9,7 @@ glam = "0.30"
 rand = "0.9"
 rayon = "1.10"
 anyhow = "1.0"
+tobj = "4.0"
 
 # [profile.release]
 # debug = true

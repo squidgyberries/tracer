@@ -334,14 +334,14 @@ fn tricube() {
         vec3(1.0, -1.0, -1.0),
         vec3(-2.0, 0.0, 0.0),
         vec3(0.0, 2.0, 0.0),
-        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        [Vec2::ZERO; 3],
         box_material.clone(),
     )));
     world.add(Arc::new(Triangle::new(
         vec3(-1.0, 1.0, -1.0),
         vec3(2.0, 0.0, 0.0),
         vec3(0.0, -2.0, 0.0),
-        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        [Vec2::ZERO; 3],
         box_material.clone(),
     )));
     // front
@@ -349,14 +349,14 @@ fn tricube() {
         vec3(-1.0, -1.0, 1.0),
         vec3(2.0, 0.0, 0.0),
         vec3(0.0, 2.0, 0.0),
-        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        [Vec2::ZERO; 3],
         box_material.clone(),
     )));
     world.add(Arc::new(Triangle::new(
         vec3(1.0, 1.0, 1.0),
         vec3(-2.0, 0.0, 0.0),
         vec3(0.0, -2.0, 0.0),
-        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        [Vec2::ZERO; 3],
         box_material.clone(),
     )));
     // left
@@ -364,14 +364,14 @@ fn tricube() {
         vec3(-1.0, -1.0, -1.0),
         vec3(0.0, 0.0, 2.0),
         vec3(0.0, 2.0, 0.0),
-        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        [Vec2::ZERO; 3],
         box_material.clone(),
     )));
     world.add(Arc::new(Triangle::new(
         vec3(-1.0, 1.0, 1.0),
         vec3(0.0, 0.0, -2.0),
         vec3(0.0, -2.0, 0.0),
-        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        [Vec2::ZERO; 3],
         box_material.clone(),
     )));
     // right
@@ -379,14 +379,14 @@ fn tricube() {
         vec3(1.0, -1.0, 1.0),
         vec3(0.0, 0.0, -2.0),
         vec3(0.0, 2.0, 0.0),
-        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        [Vec2::ZERO; 3],
         box_material.clone(),
     )));
     world.add(Arc::new(Triangle::new(
         vec3(1.0, 1.0, -1.0),
         vec3(0.0, 0.0, 2.0),
         vec3(0.0, -2.0, 0.0),
-        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        [Vec2::ZERO; 3],
         box_material.clone(),
     )));
     // bottom
@@ -394,14 +394,14 @@ fn tricube() {
         vec3(-1.0, -1.0, -1.0),
         vec3(2.0, 0.0, 0.0),
         vec3(0.0, 0.0, 2.0),
-        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        [Vec2::ZERO; 3],
         box_material.clone(),
     )));
     world.add(Arc::new(Triangle::new(
         vec3(1.0, -1.0, 1.0),
         vec3(-2.0, 0.0, 0.0),
         vec3(0.0, 0.0, -2.0),
-        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        [Vec2::ZERO; 3],
         box_material.clone(),
     )));
     // top
@@ -409,14 +409,14 @@ fn tricube() {
         vec3(-1.0, 1.0, 1.0),
         vec3(2.0, 0.0, 0.0),
         vec3(0.0, 0.0, -2.0),
-        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        [Vec2::ZERO; 3],
         box_material.clone(),
     )));
     world.add(Arc::new(Triangle::new(
         vec3(1.0, 1.0, -1.0),
         vec3(-2.0, 0.0, 0.0),
         vec3(0.0, 0.0, 2.0),
-        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        [Vec2::ZERO; 3],
         box_material.clone(),
     )));
 
@@ -425,7 +425,7 @@ fn tricube() {
         vec3(-10.0, -1.0, 10.0),
         vec3(20.0, 0.0, 0.0),
         vec3(0.0, 0.0, -20.0),
-        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        [Vec2::ZERO; 4],
         floor_material,
     )));
 
@@ -458,13 +458,94 @@ fn tricube() {
     imgbuf.save("output.png").unwrap();
 }
 
+fn monkey() {
+    let (models, _materials) = tobj::load_obj(
+        "monkey.obj",
+        &tobj::LoadOptions {
+            triangulate: true,
+            ..Default::default()
+        },
+    )
+    .expect("Failed to load OBJ file.");
+
+    let mesh = &models[0].mesh;
+    println!(
+        "{}: {}, {}",
+        models[0].name,
+        mesh.positions.len(),
+        mesh.indices.len()
+    );
+
+    let mut world = HittableList::new();
+
+    let material = Arc::new(Material::new_lambertian(
+        Arc::new(SolidColor::new(Vec3::splat(0.8))),
+        Vec3::ONE,
+    ));
+
+    for i in 0..mesh.indices.len() / 3 {
+        let index1 = mesh.indices[3 * i] as usize;
+        let index2 = mesh.indices[3 * i + 1] as usize;
+        let index3 = mesh.indices[3 * i + 2] as usize;
+        let vertex1 = vec3(
+            mesh.positions[3 * index1],
+            mesh.positions[3 * index1 + 1],
+            mesh.positions[3 * index1 + 2],
+        );
+        let vertex2 = vec3(
+            mesh.positions[3 * index2],
+            mesh.positions[3 * index2 + 1],
+            mesh.positions[3 * index2 + 2],
+        );
+        let vertex3 = vec3(
+            mesh.positions[3 * index3],
+            mesh.positions[3 * index3 + 1],
+            mesh.positions[3 * index3 + 2],
+        );
+        world.add(Arc::new(Triangle::new(
+            vertex1,
+            vertex2 - vertex1,
+            vertex3 - vertex1,
+            [Vec2::ZERO; 3],
+            material.clone(),
+        )))
+    }
+
+    let bvh = BvhNode::from_hittable_list(world);
+
+    let image_width = 800;
+    let image_height = 600;
+
+    let camera = Camera::new(
+        image_width,
+        image_height,
+        60.0,
+        vec3(2.0, 1.0, 3.0),
+        vec3(0.0, 0.0, 0.0),
+        vec3(0.0, 1.0, 0.0),
+        0.0,
+        1.0,
+        100,
+        10,
+    );
+
+    let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
+
+    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global().unwrap();
+
+    camera.render_threaded(&bvh, &mut imgbuf);
+
+    imgbuf.save("output.png").unwrap();
+}
+
 fn main() {
-    match 5 {
+    match 6 {
         1 => spheres(),
         2 => checkered_spheres(),
         3 => earth(),
         4 => quads(),
         5 => tricube(),
+        6 => monkey(),
         _ => spheres(),
     }
 }
