@@ -16,10 +16,18 @@ mod util;
 use std::sync::Arc;
 
 use crate::{
-    bvh::BvhNode, camera::Camera, hittable_list::HittableList, material::Material, quad::Quad, sphere::Sphere, texture::{ImageTexture, SolidColor, SpatialChecker}, triangle::Triangle, util::random_vec3
+    bvh::BvhNode,
+    camera::Camera,
+    hittable_list::HittableList,
+    material::Material,
+    quad::Quad,
+    sphere::Sphere,
+    texture::{ImageTexture, SolidColor, SpatialChecker},
+    triangle::Triangle,
+    util::random_vec3,
 };
 
-use glam::{vec2, vec3, Vec3};
+use glam::{Vec2, Vec3, vec2, vec3};
 use rand::Rng;
 
 fn spheres() {
@@ -222,7 +230,12 @@ fn quads() {
         vec3(-3.0, -2.0, 5.0),
         vec3(0.0, 0.0, -4.0),
         vec3(0.0, 4.0, 0.0),
-        [vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0)],
+        [
+            vec2(0.0, 0.0),
+            vec2(1.0, 0.0),
+            vec2(0.0, 1.0),
+            vec2(1.0, 1.0),
+        ],
         left_red,
     )));
     // world.add(Arc::new(Quad::new(
@@ -237,27 +250,42 @@ fn quads() {
         vec3(4.0, 0.0, 0.0),
         vec3(0.0, 4.0, 0.0),
         [vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0)],
-        back_earth
+        back_earth,
     )));
     world.add(Arc::new(Quad::new(
         vec3(3.0, -2.0, 1.0),
         vec3(0.0, 0.0, 4.0),
         vec3(0.0, 4.0, 0.0),
-        [vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0)],
+        [
+            vec2(0.0, 0.0),
+            vec2(1.0, 0.0),
+            vec2(0.0, 1.0),
+            vec2(1.0, 1.0),
+        ],
         right_blue,
     )));
     world.add(Arc::new(Quad::new(
         vec3(-2.0, 3.0, 1.0),
         vec3(4.0, 0.0, 0.0),
         vec3(0.0, 0.0, 4.0),
-        [vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0)],
+        [
+            vec2(0.0, 0.0),
+            vec2(1.0, 0.0),
+            vec2(0.0, 1.0),
+            vec2(1.0, 1.0),
+        ],
         top_orange,
     )));
     world.add(Arc::new(Quad::new(
-        vec3(-2.0,-3.0, 5.0),
+        vec3(-2.0, -3.0, 5.0),
         vec3(4.0, 0.0, 0.0),
         vec3(0.0, 0.0, -4.0),
-        [vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0)],
+        [
+            vec2(0.0, 0.0),
+            vec2(1.0, 0.0),
+            vec2(0.0, 1.0),
+            vec2(1.0, 1.0),
+        ],
         bottom_teal,
     )));
 
@@ -284,12 +312,159 @@ fn quads() {
     imgbuf.save("output.png").unwrap();
 }
 
+fn tricube() {
+    let mut world = HittableList::new();
+
+    let box_material = Arc::new(Material::new_lambertian(
+        Arc::new(SpatialChecker::new(
+            0.5,
+            Arc::new(SolidColor::from_rgb(0.2, 0.2, 0.2)),
+            Arc::new(SolidColor::from_rgb(0.8, 0.2, 0.2)),
+        )),
+        Vec3::ONE,
+    ));
+
+    let floor_material = Arc::new(Material::new_metal(
+        Arc::new(SolidColor::from_rgb(0.8, 0.8, 0.8)),
+        0.1,
+    ));
+
+    // back
+    world.add(Arc::new(Triangle::new(
+        vec3(1.0, -1.0, -1.0),
+        vec3(-2.0, 0.0, 0.0),
+        vec3(0.0, 2.0, 0.0),
+        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        box_material.clone(),
+    )));
+    world.add(Arc::new(Triangle::new(
+        vec3(-1.0, 1.0, -1.0),
+        vec3(2.0, 0.0, 0.0),
+        vec3(0.0, -2.0, 0.0),
+        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        box_material.clone(),
+    )));
+    // front
+    world.add(Arc::new(Triangle::new(
+        vec3(-1.0, -1.0, 1.0),
+        vec3(2.0, 0.0, 0.0),
+        vec3(0.0, 2.0, 0.0),
+        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        box_material.clone(),
+    )));
+    world.add(Arc::new(Triangle::new(
+        vec3(1.0, 1.0, 1.0),
+        vec3(-2.0, 0.0, 0.0),
+        vec3(0.0, -2.0, 0.0),
+        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        box_material.clone(),
+    )));
+    // left
+    world.add(Arc::new(Triangle::new(
+        vec3(-1.0, -1.0, -1.0),
+        vec3(0.0, 0.0, 2.0),
+        vec3(0.0, 2.0, 0.0),
+        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        box_material.clone(),
+    )));
+    world.add(Arc::new(Triangle::new(
+        vec3(-1.0, 1.0, 1.0),
+        vec3(0.0, 0.0, -2.0),
+        vec3(0.0, -2.0, 0.0),
+        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        box_material.clone(),
+    )));
+    // right
+    world.add(Arc::new(Triangle::new(
+        vec3(1.0, -1.0, 1.0),
+        vec3(0.0, 0.0, -2.0),
+        vec3(0.0, 2.0, 0.0),
+        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        box_material.clone(),
+    )));
+    world.add(Arc::new(Triangle::new(
+        vec3(1.0, 1.0, -1.0),
+        vec3(0.0, 0.0, 2.0),
+        vec3(0.0, -2.0, 0.0),
+        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        box_material.clone(),
+    )));
+    // bottom
+    world.add(Arc::new(Triangle::new(
+        vec3(-1.0, -1.0, -1.0),
+        vec3(2.0, 0.0, 0.0),
+        vec3(0.0, 0.0, 2.0),
+        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        box_material.clone(),
+    )));
+    world.add(Arc::new(Triangle::new(
+        vec3(1.0, -1.0, 1.0),
+        vec3(-2.0, 0.0, 0.0),
+        vec3(0.0, 0.0, -2.0),
+        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        box_material.clone(),
+    )));
+    // top
+    world.add(Arc::new(Triangle::new(
+        vec3(-1.0, 1.0, 1.0),
+        vec3(2.0, 0.0, 0.0),
+        vec3(0.0, 0.0, -2.0),
+        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        box_material.clone(),
+    )));
+    world.add(Arc::new(Triangle::new(
+        vec3(1.0, 1.0, -1.0),
+        vec3(-2.0, 0.0, 0.0),
+        vec3(0.0, 0.0, 2.0),
+        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        box_material.clone(),
+    )));
+
+    // floor
+    world.add(Arc::new(Quad::new(
+        vec3(-10.0, -1.0, 10.0),
+        vec3(20.0, 0.0, 0.0),
+        vec3(0.0, 0.0, -20.0),
+        [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        floor_material,
+    )));
+
+    // let mut rng = rand::rng();
+
+    let bvh = BvhNode::from_hittable_list(world);
+
+    let image_width = 800;
+    let image_height = 600;
+
+    let camera = Camera::new(
+        image_width,
+        image_height,
+        60.0,
+        vec3(5.0, 4.0, 7.0),
+        vec3(0.0, 0.0, 0.0),
+        vec3(0.0, 1.0, 0.0),
+        0.6,
+        9.487,
+        500,
+        50,
+    );
+
+    let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
+
+    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global().unwrap();
+
+    camera.render_threaded(&bvh, &mut imgbuf);
+
+    imgbuf.save("output.png").unwrap();
+}
+
 fn main() {
-    match 4 {
+    match 5 {
         1 => spheres(),
         2 => checkered_spheres(),
         3 => earth(),
         4 => quads(),
+        5 => tricube(),
         _ => spheres(),
     }
 }
