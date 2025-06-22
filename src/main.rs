@@ -112,6 +112,7 @@ fn spheres() {
         7.0,
         500,
         10,
+        vec3(0.7, 0.8, 1.0),
     );
 
     let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
@@ -159,6 +160,7 @@ fn checkered_spheres() {
         7.0,
         100,
         10,
+        vec3(0.7, 0.8, 1.0),
     );
 
     let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
@@ -189,6 +191,7 @@ fn earth() {
         7.0,
         100,
         10,
+        vec3(0.7, 0.8, 1.0),
     );
 
     let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
@@ -303,6 +306,7 @@ fn quads() {
         7.0,
         100,
         50,
+        vec3(0.7, 0.8, 1.0),
     );
 
     let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
@@ -447,6 +451,7 @@ fn tricube() {
         9.487,
         500,
         50,
+        vec3(0.7, 0.8, 1.0),
     );
 
     let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
@@ -459,6 +464,8 @@ fn tricube() {
 }
 
 fn monkey() {
+    let mut world = HittableList::new();
+
     let (models, _materials) = tobj::load_obj(
         "monkey.obj",
         &tobj::LoadOptions {
@@ -476,13 +483,12 @@ fn monkey() {
         mesh.indices.len()
     );
 
-    let mut world = HittableList::new();
-
     let material = Arc::new(Material::new_lambertian(
         Arc::new(SolidColor::new(Vec3::splat(0.8))),
         Vec3::ONE,
     ));
 
+    // monkey
     for i in 0..mesh.indices.len() / 3 {
         let index1 = mesh.indices[3 * i] as usize;
         let index2 = mesh.indices[3 * i + 1] as usize;
@@ -511,6 +517,28 @@ fn monkey() {
         )))
     }
 
+    // floor
+    world.add(Arc::new(Quad::new(
+        vec3(-5.0, -1.0, 5.0),
+        vec3(10.0, 0.0, 0.0),
+        vec3(0.0, 0.0, -10.0),
+        [Vec2::ZERO; 4],
+        material,
+    )));
+
+    // light
+    let light_material = Arc::new(Material::new_diffuse_light(
+        Arc::new(SolidColor::from_rgb(1.0, 1.0, 1.0)),
+        4.0,
+    ));
+    world.add(Arc::new(Quad::new(
+        vec3(2.0, 1.0, -2.0),
+        vec3(2.0, 0.0, 2.0),
+        vec3(0.0, 2.0, 0.0),
+        [Vec2::ZERO; 4],
+        light_material,
+    )));
+
     let bvh = BvhNode::from_hittable_list(world);
 
     let image_width = 800;
@@ -520,13 +548,157 @@ fn monkey() {
         image_width,
         image_height,
         60.0,
-        vec3(2.0, 1.0, 3.0),
+        vec3(4.0, 2.0, 5.0),
         vec3(0.0, 0.0, 0.0),
         vec3(0.0, 1.0, 0.0),
         0.0,
         1.0,
         100,
         10,
+        vec3(0.0, 0.0, 0.0),
+    );
+
+    let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
+
+    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global().unwrap();
+
+    camera.render_threaded(&bvh, &mut imgbuf);
+
+    imgbuf.save("output.png").unwrap();
+}
+
+fn cornell_box() {
+    let mut world = HittableList::new();
+
+    let red_material = Arc::new(Material::new_lambertian(
+        Arc::new(SolidColor::from_rgb(0.65, 0.05, 0.05)),
+        Vec3::ONE,
+    ));
+    let white_material = Arc::new(Material::new_lambertian(
+        Arc::new(SolidColor::from_rgb(0.73, 0.73, 0.73)),
+        Vec3::ONE,
+    ));
+    let green_material = Arc::new(Material::new_lambertian(
+        Arc::new(SolidColor::from_rgb(0.12, 0.45, 0.15)),
+        Vec3::ONE,
+    ));
+    let light_material = Arc::new(Material::new_diffuse_light(
+        Arc::new(SolidColor::from_rgb(1.0, 1.0, 1.0)),
+        15.0,
+    ));
+
+    // left wall
+    world.add(Arc::new(Quad::new(
+        vec3(0.0, 0.0, 0.0),
+        vec3(0.0, 0.0, -555.0),
+        vec3(0.0, 555.0, 0.0),
+        [Vec2::ZERO; 4],
+        green_material,
+    )));
+    // right wall
+    world.add(Arc::new(Quad::new(
+        vec3(555.0, 0.0, -555.0),
+        vec3(0.0, 0.0, 555.0),
+        vec3(0.0, 555.0, 0.0),
+        [Vec2::ZERO; 4],
+        red_material,
+    )));
+    // floor
+    world.add(Arc::new(Quad::new(
+        vec3(0.0, 0.0, 0.0),
+        vec3(555.0, 0.0, 0.0),
+        vec3(0.0, 0.0, -555.0),
+        [Vec2::ZERO; 4],
+        white_material.clone(),
+    )));
+    // back wall
+    world.add(Arc::new(Quad::new(
+        vec3(0.0, 0.0, -555.0),
+        vec3(555.0, 0.0, 0.0),
+        vec3(0.0, 555.0, 0.0),
+        [Vec2::ZERO; 4],
+        white_material.clone(),
+    )));
+    // ceiling
+    world.add(Arc::new(Quad::new(
+        vec3(0.0, 555.0, -555.0),
+        vec3(555.0, 0.0, 0.0),
+        vec3(0.0, 0.0, 555.0),
+        [Vec2::ZERO; 4],
+        white_material.clone(),
+    )));
+    // light
+    world.add(Arc::new(Quad::new(
+        vec3(212.0, 554.999, -343.0),
+        vec3(131.0, 0.0, 0.0),
+        vec3(0.0, 0.0, 131.0),
+        [Vec2::ZERO; 4],
+        light_material,
+    )));
+
+    let (models, _materials) = tobj::load_obj(
+        "monkeybig.obj",
+        &tobj::LoadOptions {
+            triangulate: true,
+            ..Default::default()
+        },
+    )
+    .expect("Failed to load OBJ file.");
+
+    let mesh = &models[0].mesh;
+    println!(
+        "{}: {}, {}",
+        models[0].name,
+        mesh.positions.len(),
+        mesh.indices.len()
+    );
+
+    // monkey
+    for i in 0..mesh.indices.len() / 3 {
+        let index1 = mesh.indices[3 * i] as usize;
+        let index2 = mesh.indices[3 * i + 1] as usize;
+        let index3 = mesh.indices[3 * i + 2] as usize;
+        let vertex1 = vec3(
+            mesh.positions[3 * index1],
+            mesh.positions[3 * index1 + 1],
+            mesh.positions[3 * index1 + 2],
+        );
+        let vertex2 = vec3(
+            mesh.positions[3 * index2],
+            mesh.positions[3 * index2 + 1],
+            mesh.positions[3 * index2 + 2],
+        );
+        let vertex3 = vec3(
+            mesh.positions[3 * index3],
+            mesh.positions[3 * index3 + 1],
+            mesh.positions[3 * index3 + 2],
+        );
+        world.add(Arc::new(Triangle::new(
+            vertex1,
+            vertex2 - vertex1,
+            vertex3 - vertex1,
+            [Vec2::ZERO; 3],
+            white_material.clone(),
+        )))
+    }
+
+    let bvh = BvhNode::from_hittable_list(world);
+
+    let image_width = 800;
+    let image_height = 800;
+
+    let camera = Camera::new(
+        image_width,
+        image_height,
+        40.0,
+        vec3(277.5, 277.5, 800.0),
+        vec3(277.5, 277.5, 0.0),
+        vec3(0.0, 1.0, 0.0),
+        0.0,
+        1.0,
+        1000,
+        50,
+        vec3(0.0, 0.0, 0.0),
     );
 
     let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
@@ -539,13 +711,14 @@ fn monkey() {
 }
 
 fn main() {
-    match 6 {
+    match 7 {
         1 => spheres(),
         2 => checkered_spheres(),
         3 => earth(),
         4 => quads(),
         5 => tricube(),
         6 => monkey(),
+        7 => cornell_box(),
         _ => spheres(),
     }
 }

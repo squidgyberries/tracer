@@ -36,7 +36,7 @@ impl Aabb {
             Interval::new(min.x, max.x),
             Interval::new(min.y, max.y),
             Interval::new(min.z, max.z),
-        )
+        ).padded_to_mins()
     }
 
     #[inline(always)]
@@ -57,7 +57,7 @@ impl Aabb {
 
     #[inline(always)]
     pub const fn pad_to_mins(&mut self) {
-        const DELTA: f32 = 0.0001;
+        const DELTA: f32 = 0.001;
         if self.x.size() < DELTA {
             self.x.expand(DELTA);
         }
@@ -71,7 +71,7 @@ impl Aabb {
 
     #[inline(always)]
     pub const fn padded_to_mins(&self) -> Self {
-        const DELTA: f32 = 0.0001;
+        const DELTA: f32 = 0.001;
         Self::new(
             if self.x.size() < DELTA {
                 self.x.expanded(DELTA)

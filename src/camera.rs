@@ -24,6 +24,7 @@ pub struct Camera {
     samples_per_pixel: i32,
     pixel_samples_scale: f32, // rename?
     max_depth: i32,
+    background_color: Vec3,
     pixel00_loc: Vec3,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
@@ -68,7 +69,7 @@ impl Camera {
                         let mut pixel_color = Vec3::ZERO;
                         for _ in 0..self.samples_per_pixel {
                             let ray = self.get_ray(x, y, rng);
-                            pixel_color += Self::ray_color(ray, self.max_depth, world, rng);
+                            pixel_color += self.ray_color(ray, self.max_depth, world, rng);
                         }
 
                         *pixel = vec3_to_rgb8(self.pixel_samples_scale * pixel_color);
@@ -97,7 +98,7 @@ impl Camera {
             let mut pixel_color = Vec3::ZERO;
             for _ in 0..self.samples_per_pixel {
                 let ray = self.get_ray(x, y, rng);
-                pixel_color += Self::ray_color(ray, self.max_depth, world, rng);
+                pixel_color += self.ray_color(ray, self.max_depth, world, rng);
             }
 
             *pixel = vec3_to_rgb8(self.pixel_samples_scale * pixel_color);
@@ -118,6 +119,7 @@ impl Camera {
         focus_dist: f32,
         samples_per_pixel: i32,
         max_depth: i32,
+        background_color: Vec3,
     ) -> Self {
         let aspect_ratio = image_width as f32 / image_height as f32;
 
@@ -165,6 +167,7 @@ impl Camera {
             samples_per_pixel,
             pixel_samples_scale: 1.0 / samples_per_pixel as f32,
             max_depth,
+            background_color,
             pixel00_loc,
             pixel_delta_u,
             pixel_delta_v,
@@ -213,26 +216,26 @@ impl Camera {
         self.center + (point.x * self.defocus_disk_u) + (point.y * self.defocus_disk_v)
     }
 
-    fn ray_color(ray: Ray, depth: i32, world: &impl Hittable, rng: &mut impl rand::Rng) -> Vec3 {
+    fn ray_color(&self, ray: Ray, depth: i32, world: &impl Hittable, rng: &mut impl rand::Rng) -> Vec3 {
         if depth <= 0 {
             return Vec3::ZERO;
         }
 
         let mut hit_record = HitRecord::default();
         let hit = world.hit(ray, Interval::new(0.001, f32::INFINITY), &mut hit_record);
-        if hit {
-            let (scatter, attenuation, scattered_ray) =
-                hit_record.material.scatter(ray, &hit_record, rng);
-            if scatter {
-                return attenuation * Self::ray_color(scattered_ray, depth - 1, world, rng);
-            }
-            return Vec3::ZERO;
+        if !hit {
+            return self.background_color;
         }
 
-        let unit_direction = ray.direction.normalize();
-        let a = 0.5 * (unit_direction.y + 1.0);
-        (1.0 - a) * Vec3::ONE + a * Vec3::new(0.5, 0.7, 1.0)
-        // (1.0 - a) * Vec3::ONE + a * Vec3::new(1.0, 0.5, 0.5)
-        // Vec3::ONE
+        let emitted_color = hit_record.material.emitted(hit_record.uv, hit_record.point);
+
+        let (scatter, attenuation, scattered_ray) = hit_record.material.scatter(ray, &hit_record, rng);
+        if !scatter {
+            return emitted_color;
+        }
+
+        let scatter_color = attenuation * self.ray_color(scattered_ray, depth - 1, world, rng);
+
+        emitted_color + scatter_color
     }
 }
