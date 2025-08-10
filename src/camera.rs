@@ -1,4 +1,4 @@
-use std::sync::atomic::AtomicU32;
+use std::sync::atomic::{AtomicBool, AtomicU32};
 
 use crate::{
     color::vec3_to_rgb8,
@@ -46,19 +46,17 @@ impl Camera {
     ) {
         let pixels_done = AtomicU32::new(0);
         let total_pixels = self.image_width * self.image_height;
-        // this is bad?
+        let is_done = AtomicBool::new(false);
         rayon::join(
             || {
                 loop {
-                    let p_done = pixels_done.load(std::sync::atomic::Ordering::Relaxed);
-                    if p_done >= total_pixels {
-                        eprint!("\rProgress: 100%");
-                        break;
-                    }
                     let progress = (pixels_done.load(std::sync::atomic::Ordering::Relaxed) as f32
                         / total_pixels as f32)
                         * 100.0;
                     eprint!("\rProgress: {}%", progress as u32);
+                    if is_done.load(std::sync::atomic::Ordering::Relaxed) {
+                        break;
+                    }
                     std::thread::sleep(std::time::Duration::from_millis(50));
                 }
             },
@@ -75,6 +73,7 @@ impl Camera {
                         *pixel = vec3_to_rgb8(self.pixel_samples_scale * pixel_color);
                         pixels_done.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                     });
+                is_done.store(true, std::sync::atomic::Ordering::Relaxed);
             },
         );
         eprintln!("");

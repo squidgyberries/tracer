@@ -64,9 +64,12 @@ impl Hittable for Quad {
         if denom.abs() < 1e-8 {
             return false;
         }
+        // back-face culling
+        // if denom > -1e-8 {
+        //     return false;
+        // }
 
         let t = (self.d - self.normal.dot(ray.origin)) / denom;
-        // surrounds? contains?
         if !ray_t.surrounds(t) {
             return false;
         }

@@ -18,23 +18,17 @@ pub struct Triangle {
     material: Arc<Material>,
     bbox: Aabb,
     normal: Vec3,
-    d: f32,
-    w: Vec3,
 }
 
 impl Triangle {
     #[inline(always)]
     pub fn new(a: Vec3, ab: Vec3, ac: Vec3, uvs: [Vec2; 3], material: Arc<Material>) -> Self {
-        // is there a better way?
         let bbox_diagonal1 = Aabb::from_corners(a, a + ab);
         let bbox_diagonal2 = Aabb::from_corners(a, a + ac);
         let bbox = Aabb::merged(bbox_diagonal1, bbox_diagonal2);
 
         let n = ab.cross(ac);
         let normal = n.normalize();
-        let d = normal.dot(a);
-        let w = n / n.dot(n);
-        // let w = n / n.length_squared();
 
         Self {
             a,
@@ -44,8 +38,6 @@ impl Triangle {
             material,
             bbox,
             normal,
-            d,
-            w,
         }
     }
 
@@ -59,33 +51,42 @@ impl Triangle {
 }
 
 impl Hittable for Triangle {
+    // moller trumbore from scratchapixel
     fn hit(&self, ray: Ray, ray_t: Interval, hit_record: &mut HitRecord) -> bool {
-        let denom = self.normal.dot(ray.direction);
+        let pvec = ray.direction.cross(self.ac);
+        let det = self.ab.dot(pvec);
 
         // ray is parallel to plane
-        if denom.abs() < 1e-8 {
+        if det.abs() < 1e-8 {
+            return false;
+        }
+        // back-face culling
+        // if det < 1e-8 {
+        //     return false;
+        // }
+
+        let tvec = ray.origin - self.a;
+        let u = tvec.dot(pvec) / det;
+        if u < 0.0 || u > 1.0 {
+            return false;
+        }
+        
+        let qvec = tvec.cross(self.ab);
+        let v = ray.direction.dot(qvec) / det;
+        if v < 0.0 || u + v > 1.0 {
             return false;
         }
 
-        let t = (self.d - self.normal.dot(ray.origin)) / denom;
-        // surrounds? contains?
+        let t = self.ac.dot(qvec) / det;
         if !ray_t.surrounds(t) {
             return false;
         }
 
-        // lies in quad?
         let hit_point = ray.at(t);
-        let planar_hitpt_vector = hit_point - self.a;
-        let alpha = self.w.dot(planar_hitpt_vector.cross(self.ac));
-        let beta = self.w.dot(self.ab.cross(planar_hitpt_vector));
 
-        if !self.is_interior(alpha, beta) {
-            return false;
-        }
-
-        let uv = (1.0 - alpha - beta) * self.uvs[0]
-            + alpha * self.uvs[1]
-            + beta * self.uvs[2];
+        let uv = (1.0 - u - v) * self.uvs[0]
+            + u * self.uvs[1]
+            + v * self.uvs[2];
 
         hit_record.t = t;
         hit_record.point = hit_point;

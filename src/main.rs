@@ -241,13 +241,18 @@ fn quads() {
         ],
         left_red,
     )));
-    // world.add(Arc::new(Quad::new(
-    //     vec3(-2.0, -2.0, 0.0),
-    //     vec3(4.0, 0.0, 0.0),
-    //     vec3(0.0, 4.0, 0.0),
-    //     [vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0)],
-    //     back_earth,
-    // )));
+    world.add(Arc::new(Quad::new(
+        vec3(-2.0, -2.0, 0.0),
+        vec3(4.0, 0.0, 0.0),
+        vec3(0.0, 4.0, 0.0),
+        [
+            vec2(0.0, 0.0),
+            vec2(1.0, 0.0),
+            vec2(0.0, 1.0),
+            vec2(1.0, 1.0),
+        ],
+        back_earth.clone(),
+    )));
     world.add(Arc::new(Triangle::new(
         vec3(-2.0, -2.0, 0.0),
         vec3(4.0, 0.0, 0.0),
@@ -567,7 +572,7 @@ fn monkey() {
     imgbuf.save("output.png").unwrap();
 }
 
-fn cornell_box() {
+fn cornell_monkey() {
     let mut world = HittableList::new();
 
     let red_material = Arc::new(Material::new_lambertian(
@@ -593,7 +598,7 @@ fn cornell_box() {
         vec3(0.0, 0.0, -555.0),
         vec3(0.0, 555.0, 0.0),
         [Vec2::ZERO; 4],
-        green_material,
+        red_material,
     )));
     // right wall
     world.add(Arc::new(Quad::new(
@@ -601,7 +606,7 @@ fn cornell_box() {
         vec3(0.0, 0.0, 555.0),
         vec3(0.0, 555.0, 0.0),
         [Vec2::ZERO; 4],
-        red_material,
+        green_material,
     )));
     // floor
     world.add(Arc::new(Quad::new(
@@ -696,8 +701,8 @@ fn cornell_box() {
         vec3(0.0, 1.0, 0.0),
         0.0,
         1.0,
-        1000,
-        50,
+        500,
+        10,
         vec3(0.0, 0.0, 0.0),
     );
 
@@ -711,14 +716,14 @@ fn cornell_box() {
 }
 
 fn main() {
-    match 7 {
+    match 4 {
         1 => spheres(),
         2 => checkered_spheres(),
         3 => earth(),
         4 => quads(),
         5 => tricube(),
         6 => monkey(),
-        7 => cornell_box(),
+        7 => cornell_monkey(),
         _ => spheres(),
     }
 }
