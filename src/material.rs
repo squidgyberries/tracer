@@ -89,10 +89,10 @@ impl LambertianMaterial {
         hit_record: &HitRecord,
         rng: &mut impl rand::Rng,
     ) -> (bool, Vec3, Ray) {
-        let mut scatter_direction = hit_record.get_normal() + random_unit_vec3(rng);
+        let mut scatter_direction = hit_record.normal + random_unit_vec3(rng);
 
         if vec3_near_zero(scatter_direction) {
-            scatter_direction = hit_record.get_normal();
+            scatter_direction = hit_record.normal;
         }
 
         let mut attenuation = Vec3::ZERO;
@@ -143,7 +143,7 @@ impl MetalMaterial {
         hit_record: &HitRecord,
         rng: &mut impl rand::Rng,
     ) -> (bool, Vec3, Ray) {
-        let mut reflected = ray_in.direction.reflect(hit_record.get_normal());
+        let mut reflected = ray_in.direction.reflect(hit_record.normal);
         reflected = reflected.normalize() + (self.fuzz * random_unit_vec3(rng));
         (
             true,
@@ -182,7 +182,7 @@ impl DielectricMaterial {
         hit_record: &HitRecord,
         rng: &mut impl rand::Rng,
     ) -> (bool, Vec3, Ray) {
-        let ri = if hit_record.get_front_face() {
+        let ri = if hit_record.front_face {
             1.0 / self.refraction_index
         } else {
             self.refraction_index
@@ -190,15 +190,15 @@ impl DielectricMaterial {
 
         // REIMPLEMENT
         let unit_direction = ray_in.direction.normalize();
-        let cos_theta = (-unit_direction).dot(hit_record.get_normal()).min(1.0);
+        let cos_theta = (-unit_direction).dot(hit_record.normal).min(1.0);
 
         let mut direction = unit_direction
             .normalize()
-            .refract(hit_record.get_normal(), ri);
+            .refract(hit_record.normal, ri);
         if direction == Vec3::ZERO
             || Self::dielectric_reflectance(cos_theta, ri) > rng.random::<f32>()
         {
-            direction = ray_in.direction.reflect(hit_record.get_normal());
+            direction = ray_in.direction.reflect(hit_record.normal);
         }
 
         (true, Vec3::ONE, Ray::new(hit_record.point, direction))

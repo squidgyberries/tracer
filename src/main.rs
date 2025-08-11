@@ -30,7 +30,7 @@ use crate::{
 use glam::{Vec2, Vec3, vec2, vec3};
 use rand::Rng;
 
-fn spheres() {
+fn spheres() -> anyhow::Result<()> {
     let mut world = HittableList::new();
 
     let ground_material = Arc::new(Material::new_lambertian(
@@ -80,7 +80,7 @@ fn spheres() {
     let material1 = Arc::new(Material::new_dielectric(1.5));
     world.add(Arc::new(Sphere::new(vec3(0.0, 1.0, 0.0), 1.0, material1)));
 
-    let earth_texture = Arc::new(ImageTexture::load("8081_earthmap10k.jpg").unwrap());
+    let earth_texture = Arc::new(ImageTexture::load("resources/8081_earthmap10k.jpg")?);
     let earth_material = Arc::new(Material::new_lambertian(earth_texture.clone(), Vec3::ONE));
     let globe = Sphere::new(vec3(-4.0, 1.0, 0.0), 1.0, earth_material);
     // let material2 = Arc::new(Material::new_lambertian(
@@ -117,14 +117,15 @@ fn spheres() {
 
     let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
 
-    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global().unwrap();
+    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global()?;
 
     camera.render_threaded(&bvh, &mut imgbuf);
 
-    imgbuf.save("output.png").unwrap();
+    imgbuf.save("output.png")?;
+    Ok(())
 }
 
-fn checkered_spheres() {
+fn checkered_spheres() -> anyhow::Result<()> {
     let mut world = HittableList::new();
 
     let checker = Arc::new(SpatialChecker::new(
@@ -165,15 +166,16 @@ fn checkered_spheres() {
 
     let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
 
-    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global().unwrap();
+    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global()?;
 
     camera.render_threaded(&world, &mut imgbuf);
 
-    imgbuf.save("output.png").unwrap();
+    imgbuf.save("output.png")?;
+    Ok(())
 }
 
-fn earth() {
-    let earth_texture = Arc::new(ImageTexture::load("8081_earthmap10k.jpg").unwrap());
+fn earth() -> anyhow::Result<()> {
+    let earth_texture = Arc::new(ImageTexture::load("resources/8081_earthmap10k.jpg")?);
     let earth_material = Arc::new(Material::new_lambertian(earth_texture, Vec3::ONE));
     let globe = Sphere::new(Vec3::ZERO, 2.0, earth_material);
 
@@ -198,10 +200,11 @@ fn earth() {
 
     camera.render_threaded(&globe, &mut imgbuf);
 
-    imgbuf.save("output.png").unwrap();
+    imgbuf.save("output.png")?;
+    Ok(())
 }
 
-fn quads() {
+fn quads() -> anyhow::Result<()> {
     let mut world = HittableList::new();
 
     let left_red = Arc::new(Material::new_lambertian(
@@ -213,7 +216,7 @@ fn quads() {
     //     Vec3::ONE,
     // ));
     let back_earth = Arc::new(Material::new_lambertian(
-        Arc::new(ImageTexture::load("8081_earthmap10k.jpg").unwrap()),
+        Arc::new(ImageTexture::load("resources/8081_earthmap10k.jpg")?),
         Vec3::ONE,
     ));
     let right_blue = Arc::new(Material::new_lambertian(
@@ -318,10 +321,11 @@ fn quads() {
 
     camera.render_threaded(&world, &mut imgbuf);
 
-    imgbuf.save("output.png").unwrap();
+    imgbuf.save("output.png")?;
+    Ok(())
 }
 
-fn tricube() {
+fn tricube() -> anyhow::Result<()> {
     let mut world = HittableList::new();
 
     let box_material = Arc::new(Material::new_lambertian(
@@ -461,24 +465,24 @@ fn tricube() {
 
     let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
 
-    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global().unwrap();
+    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global()?;
 
     camera.render_threaded(&bvh, &mut imgbuf);
 
-    imgbuf.save("output.png").unwrap();
+    imgbuf.save("output.png")?;
+    Ok(())
 }
 
-fn monkey() {
+fn monkey() -> anyhow::Result<()> {
     let mut world = HittableList::new();
 
     let (models, _materials) = tobj::load_obj(
-        "monkey.obj",
+        "resources/monkey.obj",
         &tobj::LoadOptions {
             triangulate: true,
             ..Default::default()
         },
-    )
-    .expect("Failed to load OBJ file.");
+    )?;
 
     let mesh = &models[0].mesh;
     println!(
@@ -565,14 +569,15 @@ fn monkey() {
 
     let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
 
-    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global().unwrap();
+    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global()?;
 
     camera.render_threaded(&bvh, &mut imgbuf);
 
-    imgbuf.save("output.png").unwrap();
+    imgbuf.save("output.png")?;
+    Ok(())
 }
 
-fn cornell_monkey() {
+fn cornell_monkey() -> anyhow::Result<()> {
     let mut world = HittableList::new();
 
     let red_material = Arc::new(Material::new_lambertian(
@@ -641,16 +646,18 @@ fn cornell_monkey() {
         light_material,
     )));
 
-    let (models, _materials) = tobj::load_obj(
-        "monkeybig.obj",
+    // monkey
+    let (models, materials) = tobj::load_obj(
+        "resources/monkeybigearth.obj",
         &tobj::LoadOptions {
             triangulate: true,
+            single_index: true,
             ..Default::default()
         },
-    )
-    .expect("Failed to load OBJ file.");
+    )?;
 
     let mesh = &models[0].mesh;
+    let material_id = mesh.material_id.expect("No material?");
     println!(
         "{}: {}, {}",
         models[0].name,
@@ -658,34 +665,47 @@ fn cornell_monkey() {
         mesh.indices.len()
     );
 
-    // monkey
+    let materials = materials?;
+    let material = &materials[material_id];
+    let texture_file = material.diffuse_texture.clone().expect("No texture?");
+
+    let monkey_material = Arc::new(Material::new_lambertian(
+        Arc::new(ImageTexture::load("resources/".to_owned() + &texture_file)?),
+        Vec3::ONE,
+    ));
+
+    let mut monkey_mesh = HittableList::new();
+
     for i in 0..mesh.indices.len() / 3 {
         let index1 = mesh.indices[3 * i] as usize;
         let index2 = mesh.indices[3 * i + 1] as usize;
         let index3 = mesh.indices[3 * i + 2] as usize;
-        let vertex1 = vec3(
-            mesh.positions[3 * index1],
-            mesh.positions[3 * index1 + 1],
-            mesh.positions[3 * index1 + 2],
-        );
-        let vertex2 = vec3(
-            mesh.positions[3 * index2],
-            mesh.positions[3 * index2 + 1],
-            mesh.positions[3 * index2 + 2],
-        );
-        let vertex3 = vec3(
-            mesh.positions[3 * index3],
-            mesh.positions[3 * index3 + 1],
-            mesh.positions[3 * index3 + 2],
-        );
-        world.add(Arc::new(Triangle::new(
-            vertex1,
-            vertex2 - vertex1,
-            vertex3 - vertex1,
-            [Vec2::ZERO; 3],
-            white_material.clone(),
+        let indices = [index1, index2, index3];
+        let mut vertices = [Vec3::ZERO; 3];
+        let mut texcoords = [Vec2::ZERO; 3];
+        for (index, (vertex, texcoord)) in std::iter::zip(indices, std::iter::zip(vertices.iter_mut(), texcoords.iter_mut())) {
+            *vertex = vec3(
+                mesh.positions[3 * index],
+                mesh.positions[3 * index + 1],
+                mesh.positions[3 * index + 2],
+            );
+            *texcoord = vec2(
+                mesh.texcoords[2 * index],
+                mesh.texcoords[2 * index + 1],
+            );
+        }
+        monkey_mesh.add(Arc::new(Triangle::new(
+            vertices[0],
+            vertices[1] - vertices[0],
+            vertices[2] - vertices[0],
+            texcoords,
+            monkey_material.clone(),
         )))
     }
+
+    let monkey_bvh = BvhNode::from_hittable_list(monkey_mesh);
+
+    world.add(Arc::new(monkey_bvh));
 
     let bvh = BvhNode::from_hittable_list(world);
 
@@ -702,21 +722,22 @@ fn cornell_monkey() {
         0.0,
         1.0,
         500,
-        10,
+        50,
         vec3(0.0, 0.0, 0.0),
     );
 
     let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
 
-    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global().unwrap();
+    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global()?;
 
     camera.render_threaded(&bvh, &mut imgbuf);
 
-    imgbuf.save("output.png").unwrap();
+    imgbuf.save("output.png")?;
+    Ok(())
 }
 
-fn main() {
-    match 4 {
+fn main() -> anyhow::Result<()> {
+    match 7 {
         1 => spheres(),
         2 => checkered_spheres(),
         3 => earth(),
