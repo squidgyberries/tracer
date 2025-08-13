@@ -70,7 +70,7 @@ impl Hittable for Triangle {
         if u < 0.0 || u > 1.0 {
             return false;
         }
-        
+
         let qvec = tvec.cross(self.ab);
         let v = ray.direction.dot(qvec) / det;
         if v < 0.0 || u + v > 1.0 {
@@ -96,6 +96,7 @@ impl Hittable for Triangle {
         true
     }
 
+    #[inline(always)]
     fn bounding_box(&self) -> Aabb {
         self.bbox
     }

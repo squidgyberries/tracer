@@ -22,9 +22,24 @@ impl HittableList {
     }
 
     #[inline(always)]
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            objects: Vec::with_capacity(capacity),
+            bbox: Aabb::EMPTY,
+        }
+    }
+
+    #[inline(always)]
     pub fn add(&mut self, object: Arc<dyn Hittable + Send + Sync>) {
         self.objects.push(object.clone());
         self.bbox.merge(object.bounding_box());
+    }
+
+    #[inline(always)]
+    pub fn update_bounding_box(&mut self) {
+        for object in &self.objects {
+            self.bbox.merge(object.bounding_box());
+        }
     }
 }
 
@@ -47,6 +62,7 @@ impl Hittable for HittableList {
         hit
     }
 
+    #[inline(always)]
     fn bounding_box(&self) -> Aabb {
         self.bbox
     }

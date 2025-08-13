@@ -97,6 +97,7 @@ impl Hittable for Quad {
         true
     }
 
+    #[inline(always)]
     fn bounding_box(&self) -> Aabb {
         self.bbox
     }

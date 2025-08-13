@@ -6,6 +6,7 @@ mod hit;
 mod hittable_list;
 mod interval;
 mod material;
+mod mesh;
 mod quad;
 mod ray;
 mod sphere;
@@ -25,6 +26,7 @@ use crate::{
     texture::{ImageTexture, SolidColor, SpatialChecker},
     triangle::Triangle,
     util::random_vec3,
+    mesh::load_obj_meshes,
 };
 
 use glam::{Vec2, Vec3, vec2, vec3};
@@ -476,55 +478,16 @@ fn tricube() -> anyhow::Result<()> {
 fn monkey() -> anyhow::Result<()> {
     let mut world = HittableList::new();
 
-    let (models, _materials) = tobj::load_obj(
-        "resources/monkey.obj",
-        &tobj::LoadOptions {
-            triangulate: true,
-            ..Default::default()
-        },
-    )?;
+    let monkey_meshes = load_obj_meshes("resources/monkeybigearth.obj")?;
 
-    let mesh = &models[0].mesh;
-    println!(
-        "{}: {}, {}",
-        models[0].name,
-        mesh.positions.len(),
-        mesh.indices.len()
-    );
+    for monkey_mesh in monkey_meshes {
+        world.add(Arc::new(BvhNode::from_hittable_list(monkey_mesh)));
+    }
 
     let material = Arc::new(Material::new_lambertian(
         Arc::new(SolidColor::new(Vec3::splat(0.8))),
         Vec3::ONE,
     ));
-
-    // monkey
-    for i in 0..mesh.indices.len() / 3 {
-        let index1 = mesh.indices[3 * i] as usize;
-        let index2 = mesh.indices[3 * i + 1] as usize;
-        let index3 = mesh.indices[3 * i + 2] as usize;
-        let vertex1 = vec3(
-            mesh.positions[3 * index1],
-            mesh.positions[3 * index1 + 1],
-            mesh.positions[3 * index1 + 2],
-        );
-        let vertex2 = vec3(
-            mesh.positions[3 * index2],
-            mesh.positions[3 * index2 + 1],
-            mesh.positions[3 * index2 + 2],
-        );
-        let vertex3 = vec3(
-            mesh.positions[3 * index3],
-            mesh.positions[3 * index3 + 1],
-            mesh.positions[3 * index3 + 2],
-        );
-        world.add(Arc::new(Triangle::new(
-            vertex1,
-            vertex2 - vertex1,
-            vertex3 - vertex1,
-            [Vec2::ZERO; 3],
-            material.clone(),
-        )))
-    }
 
     // floor
     world.add(Arc::new(Quad::new(
@@ -646,66 +609,11 @@ fn cornell_monkey() -> anyhow::Result<()> {
         light_material,
     )));
 
-    // monkey
-    let (models, materials) = tobj::load_obj(
-        "resources/monkeybigearth.obj",
-        &tobj::LoadOptions {
-            triangulate: true,
-            single_index: true,
-            ..Default::default()
-        },
-    )?;
+    let monkey_meshes = load_obj_meshes("resources/monkeybigearth.obj")?;
 
-    let mesh = &models[0].mesh;
-    let material_id = mesh.material_id.expect("No material?");
-    println!(
-        "{}: {}, {}",
-        models[0].name,
-        mesh.positions.len(),
-        mesh.indices.len()
-    );
-
-    let materials = materials?;
-    let material = &materials[material_id];
-    let texture_file = material.diffuse_texture.clone().expect("No texture?");
-
-    let monkey_material = Arc::new(Material::new_lambertian(
-        Arc::new(ImageTexture::load("resources/".to_owned() + &texture_file)?),
-        Vec3::ONE,
-    ));
-
-    let mut monkey_mesh = HittableList::new();
-
-    for i in 0..mesh.indices.len() / 3 {
-        let index1 = mesh.indices[3 * i] as usize;
-        let index2 = mesh.indices[3 * i + 1] as usize;
-        let index3 = mesh.indices[3 * i + 2] as usize;
-        let indices = [index1, index2, index3];
-        let mut vertices = [Vec3::ZERO; 3];
-        let mut texcoords = [Vec2::ZERO; 3];
-        for (index, (vertex, texcoord)) in std::iter::zip(indices, std::iter::zip(vertices.iter_mut(), texcoords.iter_mut())) {
-            *vertex = vec3(
-                mesh.positions[3 * index],
-                mesh.positions[3 * index + 1],
-                mesh.positions[3 * index + 2],
-            );
-            *texcoord = vec2(
-                mesh.texcoords[2 * index],
-                mesh.texcoords[2 * index + 1],
-            );
-        }
-        monkey_mesh.add(Arc::new(Triangle::new(
-            vertices[0],
-            vertices[1] - vertices[0],
-            vertices[2] - vertices[0],
-            texcoords,
-            monkey_material.clone(),
-        )))
+    for monkey_mesh in monkey_meshes {
+        world.add(Arc::new(BvhNode::from_hittable_list(monkey_mesh)));
     }
-
-    let monkey_bvh = BvhNode::from_hittable_list(monkey_mesh);
-
-    world.add(Arc::new(monkey_bvh));
 
     let bvh = BvhNode::from_hittable_list(world);
 
@@ -721,8 +629,8 @@ fn cornell_monkey() -> anyhow::Result<()> {
         vec3(0.0, 1.0, 0.0),
         0.0,
         1.0,
-        500,
-        50,
+        100,
+        10,
         vec3(0.0, 0.0, 0.0),
     );
 
