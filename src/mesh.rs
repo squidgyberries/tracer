@@ -9,7 +9,7 @@ use crate::{
 
 use glam::{Vec2, Vec3, vec2, vec3};
 
-pub fn load_obj_meshes(path: impl AsRef<Path> + Debug) -> anyhow::Result<Vec<HittableList>> {
+pub fn load_obj_meshes(path: impl AsRef<Path> + Debug, default_material: Arc<Material>) -> anyhow::Result<Vec<HittableList>> {
     let (models, materials) = tobj::load_obj(
         &path,
         &tobj::LoadOptions {
@@ -29,31 +29,29 @@ pub fn load_obj_meshes(path: impl AsRef<Path> + Debug) -> anyhow::Result<Vec<Hit
         let mesh = &model.mesh;
 
         eprintln!(
-            "Loading model \"{}\" with {} vertices and {} indices",
+            "Loading model \"{}\" with {} vertices and {} indices...",
             model.name,
             mesh.positions.len(),
             mesh.indices.len()
         );
 
-        let mut material = Material::default();
+        let mut material = default_material.clone();
 
         if let Some(material_id) = mesh.material_id {
             let mtl_material = &materials[material_id];
             if let Some(diffuse) = mtl_material.diffuse {
-                material = Material::new_lambertian(
+                material = Arc::new(Material::new_lambertian(
                     Arc::new(SolidColor::new(Vec3::from(diffuse))),
                     Vec3::ONE,
-                );
+                ));
             }
             if let Some(diffuse_texture) = &mtl_material.diffuse_texture {
-                material = Material::new_lambertian(
+                material = Arc::new(Material::new_lambertian(
                     Arc::new(ImageTexture::load(parent_path.join(diffuse_texture))?),
                     Vec3::ONE,
-                );
+                ));
             }
         }
-
-        let material_shared = Arc::new(material);
 
         let triangles = mesh.indices.len() / 3;
         out_meshes.push(HittableList::with_capacity(triangles));
@@ -86,7 +84,7 @@ pub fn load_obj_meshes(path: impl AsRef<Path> + Debug) -> anyhow::Result<Vec<Hit
                 vertices[1] - vertices[0],
                 vertices[2] - vertices[0],
                 texcoords,
-                material_shared.clone(),
+                material.clone(),
             )));
         }
     }

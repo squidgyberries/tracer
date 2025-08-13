@@ -478,16 +478,16 @@ fn tricube() -> anyhow::Result<()> {
 fn monkey() -> anyhow::Result<()> {
     let mut world = HittableList::new();
 
-    let monkey_meshes = load_obj_meshes("resources/monkeybigearth.obj")?;
-
-    for monkey_mesh in monkey_meshes {
-        world.add(Arc::new(BvhNode::from_hittable_list(monkey_mesh)));
-    }
-
     let material = Arc::new(Material::new_lambertian(
         Arc::new(SolidColor::new(Vec3::splat(0.8))),
         Vec3::ONE,
     ));
+
+    let monkey_meshes = load_obj_meshes("resources/monkey.obj", material.clone())?;
+
+    for monkey_mesh in monkey_meshes {
+        world.add(Arc::new(BvhNode::from_hittable_list(monkey_mesh)));
+    }
 
     // floor
     world.add(Arc::new(Quad::new(
@@ -609,7 +609,7 @@ fn cornell_monkey() -> anyhow::Result<()> {
         light_material,
     )));
 
-    let monkey_meshes = load_obj_meshes("resources/monkeybigearth.obj")?;
+    let monkey_meshes = load_obj_meshes("resources/monkeybigearth.obj", Arc::new(Material::default()))?;
 
     for monkey_mesh in monkey_meshes {
         world.add(Arc::new(BvhNode::from_hittable_list(monkey_mesh)));
@@ -645,7 +645,7 @@ fn cornell_monkey() -> anyhow::Result<()> {
 }
 
 fn main() -> anyhow::Result<()> {
-    match 7 {
+    match 6 {
         1 => spheres(),
         2 => checkered_spheres(),
         3 => earth(),
