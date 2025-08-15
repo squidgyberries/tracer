@@ -7,9 +7,12 @@ use crate::{
     triangle::Triangle,
 };
 
-use glam::{Vec2, Vec3, vec2, vec3};
+use glam::{Vec2, Vec3};
 
-pub fn load_obj_meshes(path: impl AsRef<Path> + Debug, default_material: Arc<Material>) -> anyhow::Result<Vec<HittableList>> {
+pub fn load_obj_meshes(
+    path: impl AsRef<Path> + Debug,
+    default_material: Arc<Material>,
+) -> anyhow::Result<Vec<HittableList>> {
     let (models, materials) = tobj::load_obj(
         &path,
         &tobj::LoadOptions {
@@ -68,13 +71,13 @@ pub fn load_obj_meshes(path: impl AsRef<Path> + Debug, default_material: Arc<Mat
                 .iter()
                 .zip(vertices.iter_mut().zip(texcoords.iter_mut()))
             {
-                *vertex = vec3(
+                *vertex = Vec3::new(
                     mesh.positions[3 * index],
                     mesh.positions[3 * index + 1],
                     mesh.positions[3 * index + 2],
                 );
                 *texcoord = if !mesh.texcoords.is_empty() {
-                    vec2(mesh.texcoords[2 * index], mesh.texcoords[2 * index + 1])
+                    Vec2::new(mesh.texcoords[2 * index], mesh.texcoords[2 * index + 1])
                 } else {
                     Vec2::ZERO
                 }

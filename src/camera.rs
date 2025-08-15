@@ -215,7 +215,13 @@ impl Camera {
         self.center + (point.x * self.defocus_disk_u) + (point.y * self.defocus_disk_v)
     }
 
-    fn ray_color(&self, ray: Ray, depth: i32, world: &impl Hittable, rng: &mut impl rand::Rng) -> Vec3 {
+    fn ray_color(
+        &self,
+        ray: Ray,
+        depth: i32,
+        world: &impl Hittable,
+        rng: &mut impl rand::Rng,
+    ) -> Vec3 {
         if depth <= 0 {
             return Vec3::ZERO;
         }
@@ -228,7 +234,8 @@ impl Camera {
 
         let emitted_color = hit_record.material.emitted(hit_record.uv, hit_record.point);
 
-        let (scatter, attenuation, scattered_ray) = hit_record.material.scatter(ray, &hit_record, rng);
+        let (scatter, attenuation, scattered_ray) =
+            hit_record.material.scatter(ray, &hit_record, rng);
         if !scatter {
             return emitted_color;
         }

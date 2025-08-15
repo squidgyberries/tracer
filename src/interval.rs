@@ -1,3 +1,5 @@
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Interval {
     pub min: f32,
@@ -56,5 +58,78 @@ impl Interval {
     pub const fn expanded(&self, delta: f32) -> Self {
         let padding = delta * 0.5;
         Self::new(self.min - padding, self.max + padding)
+    }
+}
+
+impl Add<f32> for Interval {
+    type Output = Self;
+
+    #[inline(always)]
+    fn add(self, rhs: f32) -> Self::Output {
+        Self::new(self.min + rhs, self.max + rhs)
+    }
+}
+
+impl AddAssign<f32> for Interval {
+    #[inline(always)]
+    fn add_assign(&mut self, rhs: f32) {
+        self.min += rhs;
+        self.max += rhs;
+    }
+}
+
+impl Sub<f32> for Interval {
+    type Output = Self;
+
+    #[inline(always)]
+    fn sub(self, rhs: f32) -> Self::Output {
+        Self::new(self.min - rhs, self.max - rhs)
+    }
+}
+
+impl SubAssign<f32> for Interval {
+    #[inline(always)]
+    fn sub_assign(&mut self, rhs: f32) {
+        self.min -= rhs;
+        self.max -= rhs;
+    }
+}
+
+impl Mul<f32> for Interval {
+    type Output = Self;
+
+    #[inline(always)]
+    fn mul(self, rhs: f32) -> Self::Output {
+        if rhs >= 0.0 {
+            Self::new(self.min * rhs, self.max * rhs)
+        } else {
+            Self::new(self.max * rhs, self.min * rhs)
+        }
+    }
+}
+
+impl MulAssign<f32> for Interval {
+    #[inline(always)]
+    fn mul_assign(&mut self, rhs: f32) {
+        *self = *self * rhs;
+    }
+}
+
+impl Div<f32> for Interval {
+    type Output = Self;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        if rhs >= 0.0 {
+            Self::new(self.min / rhs, self.max / rhs)
+        } else {
+            Self::new(self.max / rhs, self.min / rhs)
+        }
+    }
+}
+
+impl DivAssign<f32> for Interval {
+    #[inline(always)]
+    fn div_assign(&mut self, rhs: f32) {
+        *self = *self / rhs;
     }
 }

@@ -1,4 +1,4 @@
-use std::ops::{Index, IndexMut};
+use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Sub, SubAssign};
 
 use crate::{interval::Interval, ray::Ray};
 
@@ -36,7 +36,8 @@ impl Aabb {
             Interval::new(min.x, max.x),
             Interval::new(min.y, max.y),
             Interval::new(min.z, max.z),
-        ).padded_to_mins()
+        )
+        .padded_to_mins()
     }
 
     #[inline(always)]
@@ -154,5 +155,72 @@ impl IndexMut<usize> for Aabb {
             2 => &mut self.z,
             _ => panic!("index out of bounds"),
         }
+    }
+}
+
+impl Add<Vec3> for Aabb {
+    type Output = Self;
+
+    #[inline(always)]
+    fn add(self, rhs: Vec3) -> Self::Output {
+        Self::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
+    }
+}
+
+impl AddAssign<Vec3> for Aabb {
+    #[inline(always)]
+    fn add_assign(&mut self, rhs: Vec3) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
+    }
+}
+
+impl Sub<Vec3> for Aabb {
+    type Output = Self;
+
+    #[inline(always)]
+    fn sub(self, rhs: Vec3) -> Self::Output {
+        Self::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
+    }
+}
+
+impl SubAssign<Vec3> for Aabb {
+    #[inline(always)]
+    fn sub_assign(&mut self, rhs: Vec3) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+        self.z -= rhs.z;
+    }
+}
+
+impl Mul<Vec3> for Aabb {
+    type Output = Self;
+
+    #[inline(always)]
+    fn mul(self, rhs: Vec3) -> Self::Output {
+        Self::new(self.x * rhs.x, self.y * rhs.y, self.z * rhs.z)
+    }
+}
+
+impl MulAssign<Vec3> for Aabb {
+    #[inline(always)]
+    fn mul_assign(&mut self, rhs: Vec3) {
+        *self = *self * rhs;
+    }
+}
+
+impl Div<Vec3> for Aabb {
+    type Output = Self;
+
+    fn div(self, rhs: Vec3) -> Self::Output {
+        Self::new(self.x / rhs.x, self.y / rhs.y, self.z / rhs.z)
+    }
+}
+
+impl DivAssign<Vec3> for Aabb {
+    #[inline(always)]
+    fn div_assign(&mut self, rhs: Vec3) {
+        *self = *self / rhs;
     }
 }

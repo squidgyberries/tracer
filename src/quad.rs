@@ -92,7 +92,8 @@ impl Hittable for Quad {
         hit_record.t = t;
         hit_record.point = hit_point;
         hit_record.material = self.material.clone();
-        hit_record.set_face_normal(ray, self.normal);
+        hit_record.normal = self.normal;
+        hit_record.front_face = denom <= 0.0;
         hit_record.uv = uv;
         true
     }

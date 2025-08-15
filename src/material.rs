@@ -192,9 +192,7 @@ impl DielectricMaterial {
         let unit_direction = ray_in.direction.normalize();
         let cos_theta = (-unit_direction).dot(hit_record.normal).min(1.0);
 
-        let mut direction = unit_direction
-            .normalize()
-            .refract(hit_record.normal, ri);
+        let mut direction = unit_direction.normalize().refract(hit_record.normal, ri);
         if direction == Vec3::ZERO
             || Self::dielectric_reflectance(cos_theta, ri) > rng.random::<f32>()
         {

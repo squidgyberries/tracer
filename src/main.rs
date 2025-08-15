@@ -11,6 +11,7 @@ mod quad;
 mod ray;
 mod sphere;
 mod texture;
+mod transform;
 mod triangle;
 mod util;
 
@@ -21,15 +22,16 @@ use crate::{
     camera::Camera,
     hittable_list::HittableList,
     material::Material,
+    mesh::load_obj_meshes,
     quad::Quad,
     sphere::Sphere,
     texture::{ImageTexture, SolidColor, SpatialChecker},
+    transform::{Scale, Transform, Translate},
     triangle::Triangle,
     util::random_vec3,
-    mesh::load_obj_meshes,
 };
 
-use glam::{Vec2, Vec3, vec2, vec3};
+use glam::{Mat4, Quat, Vec2, Vec3, vec2, vec3};
 use rand::Rng;
 
 fn spheres() -> anyhow::Result<()> {
@@ -124,6 +126,7 @@ fn spheres() -> anyhow::Result<()> {
     camera.render_threaded(&bvh, &mut imgbuf);
 
     imgbuf.save("output.png")?;
+
     Ok(())
 }
 
@@ -173,6 +176,7 @@ fn checkered_spheres() -> anyhow::Result<()> {
     camera.render_threaded(&world, &mut imgbuf);
 
     imgbuf.save("output.png")?;
+
     Ok(())
 }
 
@@ -203,6 +207,7 @@ fn earth() -> anyhow::Result<()> {
     camera.render_threaded(&globe, &mut imgbuf);
 
     imgbuf.save("output.png")?;
+
     Ok(())
 }
 
@@ -324,6 +329,7 @@ fn quads() -> anyhow::Result<()> {
     camera.render_threaded(&world, &mut imgbuf);
 
     imgbuf.save("output.png")?;
+
     Ok(())
 }
 
@@ -472,6 +478,7 @@ fn tricube() -> anyhow::Result<()> {
     camera.render_threaded(&bvh, &mut imgbuf);
 
     imgbuf.save("output.png")?;
+
     Ok(())
 }
 
@@ -537,6 +544,7 @@ fn monkey() -> anyhow::Result<()> {
     camera.render_threaded(&bvh, &mut imgbuf);
 
     imgbuf.save("output.png")?;
+
     Ok(())
 }
 
@@ -609,7 +617,10 @@ fn cornell_monkey() -> anyhow::Result<()> {
         light_material,
     )));
 
-    let monkey_meshes = load_obj_meshes("resources/monkeybigearth.obj", Arc::new(Material::default()))?;
+    let monkey_meshes = load_obj_meshes(
+        "resources/monkeybigearth.obj",
+        Arc::new(Material::default()),
+    )?;
 
     for monkey_mesh in monkey_meshes {
         world.add(Arc::new(BvhNode::from_hittable_list(monkey_mesh)));
@@ -641,11 +652,80 @@ fn cornell_monkey() -> anyhow::Result<()> {
     camera.render_threaded(&bvh, &mut imgbuf);
 
     imgbuf.save("output.png")?;
+
+    Ok(())
+}
+
+pub fn transform_test() -> anyhow::Result<()> {
+    let mut world = HittableList::new();
+
+    let material = Arc::new(Material::new_lambertian(
+        Arc::new(SolidColor::new(Vec3::splat(0.8))),
+        Vec3::ONE,
+    ));
+
+    let cube_mesh = load_obj_meshes("resources/cube.obj", material)?.remove(0);
+    let cube_bvh = Arc::new(BvhNode::from_hittable_list(cube_mesh));
+    let transform = Mat4::from_scale_rotation_translation(
+        vec3(0.5, 2.5, 1.0),
+        Quat::from_euler(glam::EulerRot::XYZ, 45.0, 90.0, 30.0),
+        vec3(0.5, -0.5, 0.0),
+    );
+    let cube_transformed = Arc::new(Transform::new(cube_bvh, &transform));
+    world.add(cube_transformed);
+
+    // origin sphere
+    world.add(Arc::new(Sphere::new(
+        Vec3::ZERO,
+        0.2,
+        Arc::new(Material::default()),
+    )));
+
+    // light
+    let light_material = Arc::new(Material::new_diffuse_light(
+        Arc::new(SolidColor::from_rgb(1.0, 1.0, 1.0)),
+        4.0,
+    ));
+    world.add(Arc::new(Quad::new(
+        vec3(2.0, 1.0, -2.0),
+        vec3(2.0, 0.0, 2.0),
+        vec3(0.0, 2.0, 0.0),
+        [Vec2::ZERO; 4],
+        light_material,
+    )));
+
+    let world_bvh = BvhNode::from_hittable_list(world);
+
+    let image_width = 800;
+    let image_height = 600;
+
+    let camera = Camera::new(
+        image_width,
+        image_height,
+        60.0,
+        vec3(5.0, 4.0, 7.0),
+        vec3(0.0, 0.0, 0.0),
+        vec3(0.0, 1.0, 0.0),
+        0.0,
+        1.0,
+        100,
+        10,
+        vec3(0.7, 0.8, 1.0),
+    );
+
+    let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
+
+    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global()?;
+
+    camera.render_threaded(&world_bvh, &mut imgbuf);
+
+    imgbuf.save("output.png")?;
+
     Ok(())
 }
 
 fn main() -> anyhow::Result<()> {
-    match 6 {
+    match 8 {
         1 => spheres(),
         2 => checkered_spheres(),
         3 => earth(),
@@ -653,6 +733,7 @@ fn main() -> anyhow::Result<()> {
         5 => tricube(),
         6 => monkey(),
         7 => cornell_monkey(),
+        8 => transform_test(),
         _ => spheres(),
     }
 }
