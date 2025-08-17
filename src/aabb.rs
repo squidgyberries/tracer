@@ -124,7 +124,7 @@ impl Aabb {
     }
 
     #[inline(always)]
-    pub fn longest_axis(&self) -> usize {
+    pub const fn longest_axis(&self) -> usize {
         return if self.x.size() > self.y.size() {
             if self.x.size() > self.z.size() { 0 } else { 2 }
         } else {

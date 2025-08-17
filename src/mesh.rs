@@ -2,7 +2,7 @@ use std::{fmt::Debug, path::Path, sync::Arc};
 
 use crate::{
     hittable_list::HittableList,
-    material::Material,
+    material::{LambertianMaterial, Material},
     texture::{ImageTexture, SolidColor},
     triangle::Triangle,
 };
@@ -11,7 +11,7 @@ use glam::{Vec2, Vec3};
 
 pub fn load_obj_meshes(
     path: impl AsRef<Path> + Debug,
-    default_material: Arc<Material>,
+    default_material: Arc<dyn Material>,
 ) -> anyhow::Result<Vec<HittableList>> {
     let (models, materials) = tobj::load_obj(
         &path,
@@ -43,13 +43,13 @@ pub fn load_obj_meshes(
         if let Some(material_id) = mesh.material_id {
             let mtl_material = &materials[material_id];
             if let Some(diffuse) = mtl_material.diffuse {
-                material = Arc::new(Material::new_lambertian(
+                material = Arc::new(LambertianMaterial::new(
                     Arc::new(SolidColor::new(Vec3::from(diffuse))),
                     Vec3::ONE,
                 ));
             }
             if let Some(diffuse_texture) = &mtl_material.diffuse_texture {
-                material = Arc::new(Material::new_lambertian(
+                material = Arc::new(LambertianMaterial::new(
                     Arc::new(ImageTexture::load(parent_path.join(diffuse_texture))?),
                     Vec3::ONE,
                 ));
@@ -90,6 +90,8 @@ pub fn load_obj_meshes(
                 material.clone(),
             )));
         }
+
+        out_meshes[index].update_bounding_box();
     }
 
     Ok(out_meshes)

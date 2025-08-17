@@ -4,7 +4,7 @@ use crate::interval::Interval;
 
 use glam::{Vec2, Vec3};
 
-pub trait Texture {
+pub trait Texture: Send + Sync {
     fn value(&self, uv: Vec2, point: Vec3) -> Vec3;
 }
 
@@ -14,7 +14,7 @@ pub struct SolidColor {
 
 impl SolidColor {
     #[inline(always)]
-    pub fn new(albedo: Vec3) -> Self {
+    pub const fn new(albedo: Vec3) -> Self {
         Self { albedo }
     }
 
@@ -32,16 +32,16 @@ impl Texture for SolidColor {
 
 pub struct SpatialChecker {
     scale_inv: f32,
-    even: Arc<dyn Texture + Send + Sync>,
-    odd: Arc<dyn Texture + Send + Sync>,
+    even: Arc<dyn Texture>,
+    odd: Arc<dyn Texture>,
 }
 
 impl SpatialChecker {
     #[inline(always)]
-    pub fn new(
+    pub const fn new(
         scale: f32,
-        even: Arc<dyn Texture + Send + Sync>,
-        odd: Arc<dyn Texture + Send + Sync>,
+        even: Arc<dyn Texture>,
+        odd: Arc<dyn Texture>,
     ) -> Self {
         Self {
             scale_inv: 1.0 / scale,
@@ -71,7 +71,7 @@ pub struct ImageTexture {
 
 impl ImageTexture {
     #[inline(always)]
-    pub fn new(image: image::Rgb32FImage) -> Self {
+    pub const fn new(image: image::Rgb32FImage) -> Self {
         Self { image }
     }
 

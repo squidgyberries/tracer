@@ -16,7 +16,7 @@ pub struct Quad {
     u: Vec3,
     v: Vec3,
     uvs: [Vec2; 4], // q, q + u, q + v, q + u + v
-    material: Arc<Material>,
+    material: Arc<dyn Material>,
     bbox: Aabb,
     normal: Vec3,
     d: f32,
@@ -25,7 +25,7 @@ pub struct Quad {
 
 impl Quad {
     #[inline(always)]
-    pub fn new(q: Vec3, u: Vec3, v: Vec3, uvs: [Vec2; 4], material: Arc<Material>) -> Self {
+    pub fn new(q: Vec3, u: Vec3, v: Vec3, uvs: [Vec2; 4], material: Arc<dyn Material>) -> Self {
         let bbox_diagonal1 = Aabb::from_corners(q, q + u + v);
         let bbox_diagonal2 = Aabb::from_corners(q + u, q + v);
         let bbox = Aabb::merged(bbox_diagonal1, bbox_diagonal2);

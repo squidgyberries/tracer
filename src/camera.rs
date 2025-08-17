@@ -41,7 +41,7 @@ pub struct Camera {
 impl Camera {
     pub fn render_threaded(
         &self,
-        world: &(impl Hittable + Send + Sync),
+        world: &impl Hittable,
         imgbuf: &mut image::RgbImage,
     ) {
         let pixels_done = AtomicU32::new(0);

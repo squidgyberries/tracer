@@ -9,14 +9,14 @@ use crate::{
 use std::sync::Arc;
 
 pub struct BvhNode {
-    left: Arc<dyn Hittable + Send + Sync>,
-    right: Arc<dyn Hittable + Send + Sync>,
+    left: Arc<dyn Hittable>,
+    right: Arc<dyn Hittable>,
     bbox: Aabb,
 }
 
 impl BvhNode {
     pub fn new(
-        objects: &mut Vec<Arc<dyn Hittable + Send + Sync>>,
+        objects: &mut Vec<Arc<dyn Hittable>>,
         start: usize,
         end: usize,
     ) -> Self {
@@ -64,8 +64,8 @@ impl BvhNode {
 
     #[inline]
     fn box_compare(
-        a: &Arc<dyn Hittable + Send + Sync>,
-        b: &Arc<dyn Hittable + Send + Sync>,
+        a: &Arc<dyn Hittable>,
+        b: &Arc<dyn Hittable>,
         axis_index: usize,
     ) -> std::cmp::Ordering {
         let a_axis_interval = a.bounding_box()[axis_index];
@@ -75,24 +75,24 @@ impl BvhNode {
 
     #[inline(always)]
     fn box_x_compare(
-        a: &Arc<dyn Hittable + Send + Sync>,
-        b: &Arc<dyn Hittable + Send + Sync>,
+        a: &Arc<dyn Hittable>,
+        b: &Arc<dyn Hittable>,
     ) -> std::cmp::Ordering {
         Self::box_compare(a, b, 0)
     }
 
     #[inline(always)]
     fn box_y_compare(
-        a: &Arc<dyn Hittable + Send + Sync>,
-        b: &Arc<dyn Hittable + Send + Sync>,
+        a: &Arc<dyn Hittable>,
+        b: &Arc<dyn Hittable>,
     ) -> std::cmp::Ordering {
         Self::box_compare(a, b, 1)
     }
 
     #[inline(always)]
     fn box_z_compare(
-        a: &Arc<dyn Hittable + Send + Sync>,
-        b: &Arc<dyn Hittable + Send + Sync>,
+        a: &Arc<dyn Hittable>,
+        b: &Arc<dyn Hittable>,
     ) -> std::cmp::Ordering {
         Self::box_compare(a, b, 2)
     }

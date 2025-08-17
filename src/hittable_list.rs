@@ -8,13 +8,13 @@ use crate::{
 };
 
 pub struct HittableList {
-    pub objects: Vec<Arc<dyn Hittable + Send + Sync>>,
+    pub objects: Vec<Arc<dyn Hittable>>,
     bbox: Aabb,
 }
 
 impl HittableList {
     #[inline(always)]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             objects: Vec::new(),
             bbox: Aabb::EMPTY,
@@ -30,7 +30,7 @@ impl HittableList {
     }
 
     #[inline(always)]
-    pub fn add(&mut self, object: Arc<dyn Hittable + Send + Sync>) {
+    pub fn add(&mut self, object: Arc<dyn Hittable>) {
         self.objects.push(object.clone());
         self.bbox.merge(object.bounding_box());
     }

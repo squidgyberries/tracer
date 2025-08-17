@@ -15,14 +15,14 @@ pub struct Triangle {
     ab: Vec3, // replace with b and c?
     ac: Vec3,
     uvs: [Vec2; 3], // a, b, c
-    material: Arc<Material>,
+    material: Arc<dyn Material>,
     bbox: Aabb,
     normal: Vec3,
 }
 
 impl Triangle {
     #[inline(always)]
-    pub fn new(a: Vec3, ab: Vec3, ac: Vec3, uvs: [Vec2; 3], material: Arc<Material>) -> Self {
+    pub fn new(a: Vec3, ab: Vec3, ac: Vec3, uvs: [Vec2; 3], material: Arc<dyn Material>) -> Self {
         let bbox_diagonal1 = Aabb::from_corners(a, a + ab);
         let bbox_diagonal2 = Aabb::from_corners(a, a + ac);
         let bbox = Aabb::merged(bbox_diagonal1, bbox_diagonal2);
@@ -39,14 +39,6 @@ impl Triangle {
             bbox,
             normal,
         }
-    }
-
-    #[inline(always)]
-    pub const fn is_interior(&self, a: f32, b: f32) -> bool {
-        if a < 0.0 || b < 0.0 || a + b > 1.0 {
-            return false;
-        }
-        true
     }
 }
 

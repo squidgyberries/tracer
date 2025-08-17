@@ -8,86 +8,46 @@ use crate::{
 };
 
 use glam::{Vec2, Vec3};
+use rand::{Rng, RngCore};
 
-#[derive(Clone)]
-pub enum Material {
-    Lambertian(LambertianMaterial),
-    Metal(MetalMaterial),
-    Dielectric(DielectricMaterial),
-    DiffuseLight(DiffuseLightMaterial),
-}
+// is there a better way to do this?
+pub static DEFAULT_MATERIAL: std::sync::LazyLock<Arc<dyn Material>> = std::sync::LazyLock::new(|| {
+    Arc::new(LambertianMaterial::new(
+        Arc::new(SolidColor::from_rgb(1.0, 0.0, 1.0)),
+        Vec3::ONE,
+    ))
+});
 
-impl Material {
-    #[inline(always)]
-    pub fn scatter(
+pub trait Material: Send + Sync {
+    fn scatter(
         &self,
         ray_in: Ray,
         hit_record: &HitRecord,
-        rng: &mut impl rand::Rng,
-    ) -> (bool, Vec3, Ray) {
-        match self {
-            Material::Lambertian(m) => m.scatter(ray_in, hit_record, rng),
-            Material::Metal(m) => m.scatter(ray_in, hit_record, rng),
-            Material::Dielectric(m) => m.scatter(ray_in, hit_record, rng),
-            Material::DiffuseLight(m) => m.scatter(ray_in, hit_record, rng),
-        }
-    }
+        rng: &mut dyn RngCore,
+    ) -> (bool, Vec3, Ray);
 
-    #[inline(always)]
-    pub fn emitted(&self, uv: Vec2, point: Vec3) -> Vec3 {
-        match self {
-            Material::Lambertian(m) => m.emitted(uv, point),
-            Material::Metal(m) => m.emitted(uv, point),
-            Material::Dielectric(m) => m.emitted(uv, point),
-            Material::DiffuseLight(m) => m.emitted(uv, point),
-        }
-    }
-
-    #[inline(always)]
-    pub fn new_lambertian(texture: Arc<dyn Texture + Send + Sync>, diffuse_p: Vec3) -> Self {
-        Self::Lambertian(LambertianMaterial::new(texture, diffuse_p))
-    }
-
-    #[inline(always)]
-    pub fn new_metal(texture: Arc<dyn Texture + Send + Sync>, fuzz: f32) -> Self {
-        Self::Metal(MetalMaterial::new(texture, fuzz))
-    }
-
-    #[inline(always)]
-    pub const fn new_dielectric(refraction_index: f32) -> Self {
-        Self::Dielectric(DielectricMaterial::new(refraction_index))
-    }
-
-    #[inline(always)]
-    pub const fn new_diffuse_light(texture: Arc<dyn Texture + Send + Sync>, strength: f32) -> Self {
-        Self::DiffuseLight(DiffuseLightMaterial::new(texture, strength))
-    }
-}
-
-impl Default for Material {
-    #[inline(always)]
-    fn default() -> Self {
-        Self::new_lambertian(Arc::new(SolidColor::from_rgb(1.0, 0.0, 1.0)), Vec3::ONE)
-    }
+    fn emitted(&self, uv: Vec2, point: Vec3) -> Vec3;
 }
 
 #[derive(Clone)]
 pub struct LambertianMaterial {
-    pub texture: Arc<dyn Texture + Send + Sync>,
+    pub texture: Arc<dyn Texture>,
     pub diffuse_p: Vec3,
 }
 
 impl LambertianMaterial {
     #[inline(always)]
-    pub fn new(texture: Arc<dyn Texture + Send + Sync>, diffuse_p: Vec3) -> Self {
+    pub const fn new(texture: Arc<dyn Texture>, diffuse_p: Vec3) -> Self {
         Self { texture, diffuse_p }
     }
+}
 
-    pub fn scatter(
+impl Material for LambertianMaterial {
+    fn scatter(
         &self,
         _ray_in: Ray,
         hit_record: &HitRecord,
-        rng: &mut impl rand::Rng,
+        rng: &mut dyn RngCore,
     ) -> (bool, Vec3, Ray) {
         let mut scatter_direction = hit_record.normal + random_unit_vec3(rng);
 
@@ -120,28 +80,30 @@ impl LambertianMaterial {
     }
 
     #[inline(always)]
-    pub fn emitted(&self, _uv: Vec2, _point: Vec3) -> Vec3 {
+    fn emitted(&self, _uv: Vec2, _point: Vec3) -> Vec3 {
         Vec3::ZERO
     }
 }
 
 #[derive(Clone)]
 pub struct MetalMaterial {
-    pub texture: Arc<dyn Texture + Send + Sync>,
+    pub texture: Arc<dyn Texture>,
     pub fuzz: f32,
 }
 
 impl MetalMaterial {
     #[inline(always)]
-    pub const fn new(texture: Arc<dyn Texture + Send + Sync>, fuzz: f32) -> Self {
+    pub const fn new(texture: Arc<dyn Texture>, fuzz: f32) -> Self {
         Self { texture, fuzz }
     }
+}
 
-    pub fn scatter(
+impl Material for MetalMaterial {
+    fn scatter(
         &self,
         ray_in: Ray,
         hit_record: &HitRecord,
-        rng: &mut impl rand::Rng,
+        rng: &mut dyn RngCore,
     ) -> (bool, Vec3, Ray) {
         let mut reflected = ray_in.direction.reflect(hit_record.normal);
         reflected = reflected.normalize() + (self.fuzz * random_unit_vec3(rng));
@@ -153,7 +115,7 @@ impl MetalMaterial {
     }
 
     #[inline(always)]
-    pub fn emitted(&self, _uv: Vec2, _point: Vec3) -> Vec3 {
+    fn emitted(&self, _uv: Vec2, _point: Vec3) -> Vec3 {
         Vec3::ZERO
     }
 }
@@ -175,12 +137,14 @@ impl DielectricMaterial {
         r0 *= r0;
         r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
     }
+}
 
-    pub fn scatter(
+impl Material for DielectricMaterial {
+    fn scatter(
         &self,
         ray_in: Ray,
         hit_record: &HitRecord,
-        rng: &mut impl rand::Rng,
+        rng: &mut dyn RngCore,
     ) -> (bool, Vec3, Ray) {
         let ri = if hit_record.front_face {
             1.0 / self.refraction_index
@@ -203,35 +167,37 @@ impl DielectricMaterial {
     }
 
     #[inline(always)]
-    pub fn emitted(&self, _uv: Vec2, _point: Vec3) -> Vec3 {
+    fn emitted(&self, _uv: Vec2, _point: Vec3) -> Vec3 {
         Vec3::ZERO
     }
 }
 
 #[derive(Clone)]
 pub struct DiffuseLightMaterial {
-    pub texture: Arc<dyn Texture + Send + Sync>,
+    pub texture: Arc<dyn Texture>,
     pub strength: f32,
 }
 
 impl DiffuseLightMaterial {
     #[inline(always)]
-    pub const fn new(texture: Arc<dyn Texture + Send + Sync>, strength: f32) -> Self {
+    pub const fn new(texture: Arc<dyn Texture>, strength: f32) -> Self {
         Self { texture, strength }
     }
+}
 
+impl Material for DiffuseLightMaterial {
     #[inline(always)]
-    pub fn scatter(
+    fn scatter(
         &self,
         _ray_in: Ray,
         _hit_record: &HitRecord,
-        _rng: &mut impl rand::Rng,
+        _rng: &mut dyn RngCore,
     ) -> (bool, Vec3, Ray) {
         (false, Vec3::ZERO, Ray::default())
     }
 
     #[inline(always)]
-    pub fn emitted(&self, uv: Vec2, point: Vec3) -> Vec3 {
+    fn emitted(&self, uv: Vec2, point: Vec3) -> Vec3 {
         self.texture.value(uv, point) * self.strength
     }
 }

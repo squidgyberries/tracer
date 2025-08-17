@@ -10,7 +10,7 @@ use crate::{
 use glam::{Mat4, Vec3};
 
 pub struct Transform {
-    object: Arc<dyn Hittable + Send + Sync>,
+    object: Arc<dyn Hittable>,
     transform: Mat4,
     transform_inv: Mat4,
     transform_inv_t: Mat4,
@@ -18,7 +18,7 @@ pub struct Transform {
 }
 
 impl Transform {
-    pub fn new(object: Arc<dyn Hittable + Send + Sync>, transform: &Mat4) -> Self {
+    pub fn new(object: Arc<dyn Hittable>, transform: &Mat4) -> Self {
         let transform_inv = transform.inverse();
         let transform_inv_t = transform_inv.transpose();
 

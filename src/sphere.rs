@@ -14,13 +14,13 @@ use glam::{Vec2, Vec3};
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f32,
-    pub material: Arc<Material>,
+    pub material: Arc<dyn Material>,
     bbox: Aabb,
 }
 
 impl Sphere {
     #[inline(always)]
-    pub fn new(center: Vec3, radius: f32, material: Arc<Material>) -> Self {
+    pub fn new(center: Vec3, radius: f32, material: Arc<dyn Material>) -> Self {
         let r = radius.max(0.0);
         let rvec = Vec3::splat(r);
         Self {
