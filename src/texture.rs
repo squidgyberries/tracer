@@ -1,13 +1,14 @@
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 use crate::interval::Interval;
 
 use glam::{Vec2, Vec3};
 
-pub trait Texture: Send + Sync {
+pub trait Texture: Send + Sync + Debug {
     fn value(&self, uv: Vec2, point: Vec3) -> Vec3;
 }
 
+#[derive(Debug)]
 pub struct SolidColor {
     pub albedo: Vec3,
 }
@@ -30,6 +31,7 @@ impl Texture for SolidColor {
     }
 }
 
+#[derive(Debug)]
 pub struct SpatialChecker {
     scale_inv: f32,
     even: Arc<dyn Texture>,
@@ -38,11 +40,7 @@ pub struct SpatialChecker {
 
 impl SpatialChecker {
     #[inline(always)]
-    pub const fn new(
-        scale: f32,
-        even: Arc<dyn Texture>,
-        odd: Arc<dyn Texture>,
-    ) -> Self {
+    pub const fn new(scale: f32, even: Arc<dyn Texture>, odd: Arc<dyn Texture>) -> Self {
         Self {
             scale_inv: 1.0 / scale,
             even,
@@ -65,6 +63,7 @@ impl Texture for SpatialChecker {
     }
 }
 
+#[derive(Debug)]
 pub struct ImageTexture {
     image: image::Rgb32FImage,
 }

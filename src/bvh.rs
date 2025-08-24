@@ -1,3 +1,5 @@
+use rand::RngCore;
+
 use crate::{
     aabb::Aabb,
     hit::{HitRecord, Hittable},
@@ -8,6 +10,7 @@ use crate::{
 
 use std::sync::Arc;
 
+#[derive(Debug)]
 pub struct BvhNode {
     left: Arc<dyn Hittable>,
     right: Arc<dyn Hittable>,
@@ -15,11 +18,7 @@ pub struct BvhNode {
 }
 
 impl BvhNode {
-    pub fn new(
-        objects: &mut Vec<Arc<dyn Hittable>>,
-        start: usize,
-        end: usize,
-    ) -> Self {
+    pub fn new(objects: &mut Vec<Arc<dyn Hittable>>, start: usize, end: usize) -> Self {
         let mut bbox = Aabb::EMPTY;
         for object in &objects[start..end] {
             bbox.merge(object.bounding_box());
@@ -74,42 +73,40 @@ impl BvhNode {
     }
 
     #[inline(always)]
-    fn box_x_compare(
-        a: &Arc<dyn Hittable>,
-        b: &Arc<dyn Hittable>,
-    ) -> std::cmp::Ordering {
+    fn box_x_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> std::cmp::Ordering {
         Self::box_compare(a, b, 0)
     }
 
     #[inline(always)]
-    fn box_y_compare(
-        a: &Arc<dyn Hittable>,
-        b: &Arc<dyn Hittable>,
-    ) -> std::cmp::Ordering {
+    fn box_y_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> std::cmp::Ordering {
         Self::box_compare(a, b, 1)
     }
 
     #[inline(always)]
-    fn box_z_compare(
-        a: &Arc<dyn Hittable>,
-        b: &Arc<dyn Hittable>,
-    ) -> std::cmp::Ordering {
+    fn box_z_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> std::cmp::Ordering {
         Self::box_compare(a, b, 2)
     }
 }
 
 impl Hittable for BvhNode {
     #[inline]
-    fn hit(&self, ray: Ray, ray_t: Interval, hit_record: &mut HitRecord) -> bool {
+    fn hit(
+        &self,
+        ray: Ray,
+        ray_t: Interval,
+        hit_record: &mut HitRecord,
+        rng: &mut dyn RngCore,
+    ) -> bool {
         if !self.bbox.hit(ray, ray_t) {
             return false;
         }
 
-        let hit_left = self.left.hit(ray, ray_t, hit_record);
+        let hit_left = self.left.hit(ray, ray_t, hit_record, rng);
         let hit_right = self.right.hit(
             ray,
             Interval::new(ray_t.min, if hit_left { hit_record.t } else { ray_t.max }),
             hit_record,
+            rng,
         );
 
         hit_left || hit_right

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 use crate::{
     hit::HitRecord,
@@ -11,14 +11,15 @@ use glam::{Vec2, Vec3};
 use rand::{Rng, RngCore};
 
 // is there a better way to do this?
-pub static DEFAULT_MATERIAL: std::sync::LazyLock<Arc<dyn Material>> = std::sync::LazyLock::new(|| {
-    Arc::new(LambertianMaterial::new(
-        Arc::new(SolidColor::from_rgb(1.0, 0.0, 1.0)),
-        Vec3::ONE,
-    ))
-});
+pub static DEFAULT_MATERIAL: std::sync::LazyLock<Arc<dyn Material>> =
+    std::sync::LazyLock::new(|| {
+        Arc::new(LambertianMaterial::new(
+            Arc::new(SolidColor::from_rgb(1.0, 0.0, 1.0)),
+            Vec3::ONE,
+        ))
+    });
 
-pub trait Material: Send + Sync {
+pub trait Material: Send + Sync + Debug {
     fn scatter(
         &self,
         ray_in: Ray,
@@ -29,7 +30,7 @@ pub trait Material: Send + Sync {
     fn emitted(&self, uv: Vec2, point: Vec3) -> Vec3;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LambertianMaterial {
     pub texture: Arc<dyn Texture>,
     pub diffuse_p: Vec3,
@@ -85,7 +86,7 @@ impl Material for LambertianMaterial {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MetalMaterial {
     pub texture: Arc<dyn Texture>,
     pub fuzz: f32,
@@ -172,7 +173,7 @@ impl Material for DielectricMaterial {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DiffuseLightMaterial {
     pub texture: Arc<dyn Texture>,
     pub strength: f32,
@@ -199,5 +200,38 @@ impl Material for DiffuseLightMaterial {
     #[inline(always)]
     fn emitted(&self, uv: Vec2, point: Vec3) -> Vec3 {
         self.texture.value(uv, point) * self.strength
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct IsotropicMaterial {
+    texture: Arc<dyn Texture>,
+}
+
+impl IsotropicMaterial {
+    #[inline(always)]
+    pub const fn new(texture: Arc<dyn Texture>) -> Self {
+        Self { texture }
+    }
+}
+
+impl Material for IsotropicMaterial {
+    #[inline(always)]
+    fn scatter(
+        &self,
+        _ray_in: Ray,
+        hit_record: &HitRecord,
+        rng: &mut dyn RngCore,
+    ) -> (bool, Vec3, Ray) {
+        (
+            true,
+            self.texture.value(hit_record.uv, hit_record.point),
+            Ray::new(hit_record.point, crate::util::random_unit_vec3(rng)),
+        )
+    }
+
+    #[inline(always)]
+    fn emitted(&self, _uv: Vec2, _point: Vec3) -> Vec3 {
+        Vec3::ZERO
     }
 }

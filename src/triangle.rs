@@ -9,7 +9,9 @@ use crate::{
 };
 
 use glam::{Vec2, Vec3};
+use rand::RngCore;
 
+#[derive(Debug)]
 pub struct Triangle {
     a: Vec3,
     ab: Vec3, // replace with b and c?
@@ -44,7 +46,13 @@ impl Triangle {
 
 impl Hittable for Triangle {
     // moller trumbore from scratchapixel
-    fn hit(&self, ray: Ray, ray_t: Interval, hit_record: &mut HitRecord) -> bool {
+    fn hit(
+        &self,
+        ray: Ray,
+        ray_t: Interval,
+        hit_record: &mut HitRecord,
+        _rng: &mut dyn RngCore,
+    ) -> bool {
         let pvec = ray.direction.cross(self.ac);
         let det = self.ab.dot(pvec);
 

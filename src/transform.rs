@@ -8,7 +8,9 @@ use crate::{
 };
 
 use glam::{Mat4, Vec3};
+use rand::RngCore;
 
+#[derive(Debug)]
 pub struct Transform {
     object: Arc<dyn Hittable>,
     transform: Mat4,
@@ -58,13 +60,19 @@ impl Transform {
 }
 
 impl Hittable for Transform {
-    fn hit(&self, ray: Ray, ray_t: Interval, hit_record: &mut HitRecord) -> bool {
+    fn hit(
+        &self,
+        ray: Ray,
+        ray_t: Interval,
+        hit_record: &mut HitRecord,
+        rng: &mut dyn RngCore,
+    ) -> bool {
         let ray_transformed = Ray::new(
             self.transform_inv.transform_point3(ray.origin),
             self.transform_inv.transform_vector3(ray.direction),
         );
 
-        if !self.object.hit(ray_transformed, ray_t, hit_record) {
+        if !self.object.hit(ray_transformed, ray_t, hit_record, rng) {
             return false;
         }
 

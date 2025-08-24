@@ -1,8 +1,9 @@
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 use crate::{aabb::Aabb, interval::Interval, material::Material, ray::Ray};
 
 use glam::{Vec2, Vec3};
+use rand::RngCore;
 
 #[derive(Clone)]
 pub struct HitRecord {
@@ -40,8 +41,14 @@ impl Default for HitRecord {
     }
 }
 
-pub trait Hittable: Send + Sync {
-    fn hit(&self, ray: Ray, ray_t: Interval, hit_record: &mut HitRecord) -> bool;
+pub trait Hittable: Send + Sync + Debug {
+    fn hit(
+        &self,
+        ray: Ray,
+        ray_t: Interval,
+        hit_record: &mut HitRecord,
+        rng: &mut dyn RngCore,
+    ) -> bool;
 
     fn bounding_box(&self) -> Aabb;
 }

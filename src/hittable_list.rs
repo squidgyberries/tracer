@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use rand::RngCore;
+
 use crate::{
     aabb::Aabb,
     hit::{HitRecord, Hittable},
@@ -7,6 +9,7 @@ use crate::{
     ray::Ray,
 };
 
+#[derive(Debug)]
 pub struct HittableList {
     pub objects: Vec<Arc<dyn Hittable>>,
     bbox: Aabb,
@@ -44,14 +47,25 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, ray: Ray, ray_t: Interval, hit_record: &mut HitRecord) -> bool {
+    fn hit(
+        &self,
+        ray: Ray,
+        ray_t: Interval,
+        hit_record: &mut HitRecord,
+        rng: &mut dyn RngCore,
+    ) -> bool {
         let mut temp_hit_record = HitRecord::default();
         let mut temp_hit;
         let mut hit = false;
         let mut closest = ray_t.max;
 
         for object in &self.objects {
-            temp_hit = object.hit(ray, Interval::new(ray_t.min, closest), &mut temp_hit_record);
+            temp_hit = object.hit(
+                ray,
+                Interval::new(ray_t.min, closest),
+                &mut temp_hit_record,
+                rng,
+            );
             if temp_hit {
                 hit = true;
                 closest = temp_hit_record.t;

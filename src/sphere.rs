@@ -9,8 +9,9 @@ use crate::{
 };
 
 use glam::{Vec2, Vec3};
+use rand::RngCore;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f32,
@@ -46,7 +47,13 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, ray: Ray, ray_t: Interval, hit_record: &mut HitRecord) -> bool {
+    fn hit(
+        &self,
+        ray: Ray,
+        ray_t: Interval,
+        hit_record: &mut HitRecord,
+        _rng: &mut dyn RngCore,
+    ) -> bool {
         let origin_center = self.center - ray.origin;
         let a = ray.direction.length_squared();
         // let b = -2.0 * ray.direction.dot(origin_center);

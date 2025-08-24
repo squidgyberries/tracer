@@ -9,8 +9,9 @@ use crate::{
 };
 
 use glam::{Vec2, Vec3};
+use rand::RngCore;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Quad {
     q: Vec3,
     u: Vec3,
@@ -57,7 +58,13 @@ impl Quad {
 }
 
 impl Hittable for Quad {
-    fn hit(&self, ray: Ray, ray_t: Interval, hit_record: &mut HitRecord) -> bool {
+    fn hit(
+        &self,
+        ray: Ray,
+        ray_t: Interval,
+        hit_record: &mut HitRecord,
+        _rng: &mut dyn RngCore,
+    ) -> bool {
         let denom = self.normal.dot(ray.direction);
 
         // ray is parallel to plane

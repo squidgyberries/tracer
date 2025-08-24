@@ -9,6 +9,7 @@ use crate::{
 };
 
 use glam::Vec3;
+use rand::Rng;
 use rayon::iter::ParallelIterator;
 
 #[derive(Debug)]
@@ -39,11 +40,7 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn render_threaded(
-        &self,
-        world: &impl Hittable,
-        imgbuf: &mut image::RgbImage,
-    ) {
+    pub fn render_threaded(&self, world: &impl Hittable, imgbuf: &mut image::RgbImage) {
         let pixels_done = AtomicU32::new(0);
         let total_pixels = self.image_width * self.image_height;
         let is_done = AtomicBool::new(false);
@@ -80,12 +77,7 @@ impl Camera {
         eprintln!("Done.");
     }
 
-    pub fn render(
-        &self,
-        world: &impl Hittable,
-        imgbuf: &mut image::RgbImage,
-        rng: &mut impl rand::Rng,
-    ) {
+    pub fn render(&self, world: &impl Hittable, imgbuf: &mut image::RgbImage, rng: &mut impl Rng) {
         let mut pixel_num = 1;
         for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
             eprint!(
@@ -181,7 +173,7 @@ impl Camera {
     }
 
     // Construct a camera ray originating from the defocus disk and directed at a randomly sampled point around the pixel location x, y
-    fn get_ray(&self, x: u32, y: u32, rng: &mut impl rand::Rng) -> Ray {
+    fn get_ray(&self, x: u32, y: u32, rng: &mut impl Rng) -> Ray {
         let offset = Self::sample_square(rng);
         let pixel_sample = self.pixel00_loc
             + (x as f32 + offset.x) * self.pixel_delta_u
@@ -200,7 +192,7 @@ impl Camera {
 
     // random point in [-0.5, -0.5]-[+0.5, +0.5] unit square
     #[inline(always)]
-    fn sample_square(rng: &mut impl rand::Rng) -> Vec3 {
+    fn sample_square(rng: &mut impl Rng) -> Vec3 {
         Vec3::new(
             rng.random_range(-0.5..=0.5),
             rng.random_range(-0.5..=0.5),
@@ -210,7 +202,7 @@ impl Camera {
 
     // random point in the camera defocus disk
     #[inline(always)]
-    fn defocus_disk_sample(&self, rng: &mut impl rand::Rng) -> Vec3 {
+    fn defocus_disk_sample(&self, rng: &mut impl Rng) -> Vec3 {
         let point = random_in_unit_disk(rng);
         self.center + (point.x * self.defocus_disk_u) + (point.y * self.defocus_disk_v)
     }
@@ -227,7 +219,12 @@ impl Camera {
         }
 
         let mut hit_record = HitRecord::default();
-        let hit = world.hit(ray, Interval::new(0.001, f32::INFINITY), &mut hit_record);
+        let hit = world.hit(
+            ray,
+            Interval::new(0.001, f32::INFINITY),
+            &mut hit_record,
+            rng,
+        );
         if !hit {
             return self.background_color;
         }
