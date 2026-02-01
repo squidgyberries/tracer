@@ -41,6 +41,14 @@ impl Aabb {
     }
 
     #[inline(always)]
+    pub fn get_corners(&self) -> (Vec3, Vec3) {
+        (
+            Vec3::new(self.x.min, self.y.min, self.z.min),
+            Vec3::new(self.x.max, self.y.max, self.z.max),
+        )
+    }
+
+    #[inline(always)]
     pub const fn merged(a: Self, b: Self) -> Self {
         Self::new(
             Interval::enclosing(a.x, b.x),

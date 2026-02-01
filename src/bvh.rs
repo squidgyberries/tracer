@@ -2,7 +2,7 @@ use rand::RngCore;
 
 use crate::{
     aabb::Aabb,
-    hit::{HitRecord, Hittable},
+    hit::{EmptyHittable, HitRecord, Hittable},
     hittable_list::HittableList,
     interval::Interval,
     ray::Ray,
@@ -18,7 +18,18 @@ pub struct BvhNode {
 }
 
 impl BvhNode {
-    pub fn new(objects: &mut Vec<Arc<dyn Hittable>>, start: usize, end: usize) -> Self {
+    pub fn new(objects: &mut Vec<Arc<dyn Hittable>>, start: usize, end: usize, depth: i32) -> Self {
+        // Negative depth for infinite depth
+        if depth == 0 {
+            let list = HittableList::from_vec(&mut objects[start..end].to_vec());
+            let bbox = list.bounding_box();
+            return Self {
+                left: Arc::new(list),
+                right: Arc::new(EmptyHittable),
+                bbox,
+            };
+        }
+
         let mut bbox = Aabb::EMPTY;
         for object in &objects[start..end] {
             bbox.merge(object.bounding_box());
@@ -37,10 +48,10 @@ impl BvhNode {
         let object_span = end - start;
 
         let left;
-        let right;
+        let right: Arc<dyn Hittable>;
         if object_span == 1 {
             left = objects[start].clone();
-            right = objects[start].clone();
+            right = Arc::new(EmptyHittable);
         } else if object_span == 2 {
             left = objects[start].clone();
             right = objects[start + 1].clone();
@@ -48,17 +59,17 @@ impl BvhNode {
             objects[start..end].sort_by(cmp_fn);
 
             let mid = start + object_span / 2;
-            left = Arc::new(Self::new(objects, start, mid));
-            right = Arc::new(Self::new(objects, mid, end));
+            left = Arc::new(Self::new(objects, start, mid, depth - 1));
+            right = Arc::new(Self::new(objects, mid, end, depth - 1));
         }
 
         Self { left, right, bbox }
     }
 
     #[inline(always)]
-    pub fn from_hittable_list(mut list: HittableList) -> Self {
+    pub fn from_hittable_list(mut list: HittableList, depth: i32) -> Self {
         let len = list.objects.len();
-        Self::new(&mut list.objects, 0, len)
+        Self::new(&mut list.objects, 0, len, depth)
     }
 
     #[inline]

@@ -105,7 +105,7 @@ fn spheres() -> anyhow::Result<()> {
     let material3 = Arc::new(MetalMaterial::new(earth_texture, 0.0));
     world.add(Arc::new(Sphere::new(vec3(4.0, 1.0, 0.0), 1.0, material3)));
 
-    let bvh = BvhNode::from_hittable_list(world);
+    let bvh = BvhNode::from_hittable_list(world, -1);
 
     let image_width = 800;
     let image_height = 600;
@@ -457,7 +457,7 @@ fn tricube() -> anyhow::Result<()> {
 
     // let mut rng = rand::rng();
 
-    let bvh = BvhNode::from_hittable_list(world);
+    let bvh = BvhNode::from_hittable_list(world, -1);
 
     let image_width = 800;
     let image_height = 600;
@@ -498,7 +498,7 @@ fn monkey() -> anyhow::Result<()> {
     let monkey_meshes = load_obj_meshes("resources/monkey.obj", material.clone())?;
 
     for monkey_mesh in monkey_meshes {
-        world.add(Arc::new(BvhNode::from_hittable_list(monkey_mesh)));
+        world.add(Arc::new(BvhNode::from_hittable_list(monkey_mesh, -1)));
     }
 
     // floor
@@ -523,7 +523,7 @@ fn monkey() -> anyhow::Result<()> {
         light_material,
     )));
 
-    let bvh = BvhNode::from_hittable_list(world);
+    let bvh = BvhNode::from_hittable_list(world, -1);
 
     let image_width = 800;
     let image_height = 600;
@@ -625,10 +625,10 @@ fn cornell_monkey() -> anyhow::Result<()> {
     let monkey_meshes = load_obj_meshes("resources/monkeybig.obj", (*DEFAULT_MATERIAL).clone())?;
 
     for monkey_mesh in monkey_meshes {
-        world.add(Arc::new(BvhNode::from_hittable_list(monkey_mesh)));
+        world.add(Arc::new(BvhNode::from_hittable_list(monkey_mesh, 16)));
     }
 
-    let bvh = BvhNode::from_hittable_list(world);
+    let bvh = BvhNode::from_hittable_list(world, -1);
 
     let image_width = 800;
     let image_height = 800;
@@ -642,7 +642,7 @@ fn cornell_monkey() -> anyhow::Result<()> {
         vec3(0.0, 1.0, 0.0),
         0.0,
         1.0,
-        100,
+        50,
         10,
         vec3(0.0, 0.0, 0.0),
     );
@@ -667,7 +667,7 @@ pub fn transform_test() -> anyhow::Result<()> {
     ));
 
     let cube_mesh = load_obj_meshes("resources/cube.obj", material)?.remove(0);
-    let cube_bvh = Arc::new(BvhNode::from_hittable_list(cube_mesh));
+    let cube_bvh = Arc::new(BvhNode::from_hittable_list(cube_mesh, -1));
     let transform = Mat4::from_scale_rotation_translation(
         vec3(0.5, 2.5, 1.0),
         Quat::from_euler(glam::EulerRot::XYZ, 45.0, 90.0, 30.0),
@@ -696,7 +696,7 @@ pub fn transform_test() -> anyhow::Result<()> {
         light_material,
     )));
 
-    let world_bvh = BvhNode::from_hittable_list(world);
+    let world_bvh = BvhNode::from_hittable_list(world, -1);
 
     let image_width = 800;
     let image_height = 600;
@@ -798,7 +798,7 @@ fn cornell_smoke_boxes() -> anyhow::Result<()> {
     let cube_meshes = load_obj_meshes("resources/cube.obj", (*DEFAULT_MATERIAL).clone())?;
 
     for cube_mesh in cube_meshes {
-        let cube_mesh_bvh = Arc::new(BvhNode::from_hittable_list(cube_mesh));
+        let cube_mesh_bvh = Arc::new(BvhNode::from_hittable_list(cube_mesh, -1));
         world.add(Arc::new(ConstantMedium::new( // broken with transform after constantmedium
             Arc::new(Transform::new(
                 cube_mesh_bvh.clone(),
@@ -829,7 +829,7 @@ fn cornell_smoke_boxes() -> anyhow::Result<()> {
         )));
     }
 
-    let bvh = BvhNode::from_hittable_list(world);
+    let bvh = BvhNode::from_hittable_list(world, -1);
 
     let image_width = 800;
     let image_height = 800;
@@ -843,7 +843,7 @@ fn cornell_smoke_boxes() -> anyhow::Result<()> {
         vec3(0.0, 1.0, 0.0),
         0.0,
         1.0,
-        500,
+        50,
         10,
         vec3(0.0, 0.0, 0.0),
     );
@@ -860,7 +860,7 @@ fn cornell_smoke_boxes() -> anyhow::Result<()> {
 }
 
 fn main() -> anyhow::Result<()> {
-    match 9 {
+    match 7 {
         1 => spheres(),
         2 => checkered_spheres(),
         3 => earth(),

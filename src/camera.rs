@@ -16,11 +16,11 @@ use rayon::iter::ParallelIterator;
 pub struct Camera {
     image_width: u32,
     image_height: u32,
-    aspect_ratio: f32, // remove?
-    vfov: f32,
-    lookfrom: Vec3,
-    lookat: Vec3,
-    view_up: Vec3,
+    // aspect_ratio: f32,
+    // vfov: f32,
+    // lookfrom: Vec3,
+    // lookat: Vec3,
+    // view_up: Vec3,
     center: Vec3,
     samples_per_pixel: i32,
     pixel_samples_scale: f32, // rename?
@@ -30,17 +30,19 @@ pub struct Camera {
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
     // Camera frame basis vectors
-    u: Vec3,
-    v: Vec3,
-    w: Vec3,
+    // u: Vec3,
+    // v: Vec3,
+    // w: Vec3,
     defocus_angle: f32,
-    focus_dist: f32,
+    // focus_dist: f32,
     defocus_disk_u: Vec3,
     defocus_disk_v: Vec3,
 }
 
 impl Camera {
     pub fn render_threaded(&self, world: &impl Hittable, imgbuf: &mut image::RgbImage) {
+        let start = std::time::Instant::now();
+
         let pixels_done = AtomicU32::new(0);
         let total_pixels = self.image_width * self.image_height;
         let is_done = AtomicBool::new(false);
@@ -75,9 +77,13 @@ impl Camera {
         );
         eprintln!("");
         eprintln!("Done.");
+
+        eprintln!("Rendering finished in {:?}", start.elapsed());
     }
 
     pub fn render(&self, world: &impl Hittable, imgbuf: &mut image::RgbImage, rng: &mut impl Rng) {
+        let start = std::time::Instant::now();
+
         let mut pixel_num = 1;
         for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
             eprint!(
@@ -97,6 +103,8 @@ impl Camera {
         }
         eprintln!("");
         eprintln!("Done.");
+
+        eprintln!("Rendering finished in {:?}", start.elapsed());
     }
 
     pub fn new(
@@ -149,11 +157,11 @@ impl Camera {
         Self {
             image_width,
             image_height,
-            aspect_ratio,
-            vfov,
-            lookfrom,
-            lookat,
-            view_up,
+            // aspect_ratio,
+            // vfov,
+            // lookfrom,
+            // lookat,
+            // view_up,
             center,
             samples_per_pixel,
             pixel_samples_scale: 1.0 / samples_per_pixel as f32,
@@ -162,11 +170,11 @@ impl Camera {
             pixel00_loc,
             pixel_delta_u,
             pixel_delta_v,
-            u,
-            v,
-            w,
+            // u,
+            // v,
+            // w,
             defocus_angle,
-            focus_dist,
+            // focus_dist,
             defocus_disk_u,
             defocus_disk_v,
         }

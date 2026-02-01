@@ -52,3 +52,22 @@ pub trait Hittable: Send + Sync + Debug {
 
     fn bounding_box(&self) -> Aabb;
 }
+
+#[derive(Debug)]
+pub struct EmptyHittable;
+
+impl Hittable for EmptyHittable {
+    fn hit(
+        &self,
+        _ray: Ray,
+        _ray_t: Interval,
+        _hit_record: &mut HitRecord,
+        _rng: &mut dyn RngCore,
+    ) -> bool {
+        false
+    }
+
+    fn bounding_box(&self) -> Aabb {
+        Aabb::EMPTY
+    }
+}

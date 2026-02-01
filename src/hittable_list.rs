@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use glam::Vec3;
 use rand::RngCore;
 
 use crate::{
@@ -40,9 +41,21 @@ impl HittableList {
 
     #[inline(always)]
     pub fn update_bounding_box(&mut self) {
+        let mut min = Vec3::MAX;
+        let mut max = Vec3::MIN;
         for object in &self.objects {
-            self.bbox.merge(object.bounding_box());
+            let corners = object.bounding_box().get_corners();
+            min = min.min(corners.0);
+            max = max.max(corners.1);
         }
+        self.bbox = Aabb::from_corners(min, max);
+    }
+
+    pub fn from_vec(objects: &mut Vec<Arc<dyn Hittable>>) -> Self {
+        let mut list = Self::new();
+        list.objects = objects.clone();
+        list.update_bounding_box();
+        list
     }
 }
 
