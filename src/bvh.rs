@@ -67,9 +67,9 @@ impl BvhNode {
     }
 
     #[inline(always)]
-    pub fn from_hittable_list(mut list: HittableList, depth: i32) -> Self {
+    pub fn from_hittable_list(mut list: HittableList, max_depth: i32) -> Self {
         let len = list.objects.len();
-        Self::new(&mut list.objects, 0, len, depth)
+        Self::new(&mut list.objects, 0, len, max_depth)
     }
 
     #[inline]

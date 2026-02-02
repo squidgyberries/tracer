@@ -22,8 +22,10 @@ pub struct Camera {
     // lookat: Vec3,
     // view_up: Vec3,
     center: Vec3,
-    samples_per_pixel: i32,
+    // samples_per_pixel: u32,
     pixel_samples_scale: f32, // rename?
+    sqrt_spp: u32,
+    recip_sqrt_spp: f32, // 1 / sqrt(samples per pixel)
     max_depth: i32,
     background_color: Vec3,
     pixel00_loc: Vec3,
@@ -64,9 +66,15 @@ impl Camera {
                     .par_enumerate_pixels_mut()
                     .for_each_init(rand::rng, |rng, (x, y, pixel)| {
                         let mut pixel_color = Vec3::ZERO;
-                        for _ in 0..self.samples_per_pixel {
-                            let ray = self.get_ray(x, y, rng);
-                            pixel_color += self.ray_color(ray, self.max_depth, world, rng);
+                        // for _ in 0..self.samples_per_pixel {
+                        //     let ray = self.get_ray(x, y, rng);
+                        //     pixel_color += self.ray_color(ray, self.max_depth, world, rng);
+                        // }
+                        for s_y in 0..self.sqrt_spp {
+                            for s_x in 0..self.sqrt_spp {
+                                let ray = self.get_ray(x, y, s_x, s_y, rng);
+                                pixel_color += self.ray_color(ray, self.max_depth, world, rng);
+                            }
                         }
 
                         *pixel = vec3_to_rgb8(self.pixel_samples_scale * pixel_color);
@@ -93,9 +101,15 @@ impl Camera {
             );
 
             let mut pixel_color = Vec3::ZERO;
-            for _ in 0..self.samples_per_pixel {
-                let ray = self.get_ray(x, y, rng);
-                pixel_color += self.ray_color(ray, self.max_depth, world, rng);
+            // for _ in 0..self.samples_per_pixel {
+            //     let ray = self.get_ray(x, y, rng);
+            //     pixel_color += self.ray_color(ray, self.max_depth, world, rng);
+            // }
+            for s_y in 0..self.sqrt_spp {
+                for s_x in 0..self.sqrt_spp {
+                    let ray = self.get_ray(x, y, s_x, s_y, rng);
+                    pixel_color += self.ray_color(ray, self.max_depth, world, rng);
+                }
             }
 
             *pixel = vec3_to_rgb8(self.pixel_samples_scale * pixel_color);
@@ -116,13 +130,18 @@ impl Camera {
         view_up: Vec3,
         defocus_angle: f32,
         focus_dist: f32,
-        samples_per_pixel: i32,
+        samples_per_pixel: u32,
         max_depth: i32,
         background_color: Vec3,
     ) -> Self {
         let aspect_ratio = image_width as f32 / image_height as f32;
 
         let center = lookfrom;
+
+        let sqrt_spp = samples_per_pixel.isqrt();
+        // let pixel_samples_scale = 1.0 / samples_per_pixel as f32;
+        let pixel_samples_scale = 1.0 / (sqrt_spp * sqrt_spp) as f32;
+        let recip_sqrt_spp = 1.0 / sqrt_spp as f32;
 
         // Determine viewport dimensions
         // let focal_length: f32 = (lookfrom - lookat).length();
@@ -163,8 +182,10 @@ impl Camera {
             // lookat,
             // view_up,
             center,
-            samples_per_pixel,
-            pixel_samples_scale: 1.0 / samples_per_pixel as f32,
+            // samples_per_pixel,
+            pixel_samples_scale,
+            sqrt_spp,
+            recip_sqrt_spp,
             max_depth,
             background_color,
             pixel00_loc,
@@ -181,8 +202,11 @@ impl Camera {
     }
 
     // Construct a camera ray originating from the defocus disk and directed at a randomly sampled point around the pixel location x, y
-    fn get_ray(&self, x: u32, y: u32, rng: &mut impl Rng) -> Ray {
-        let offset = Self::sample_square(rng);
+    // for stratified sample square s_x, s_y
+    // Stratify pixel into sqrt_spp x sqrt_spp square grid
+    fn get_ray(&self, x: u32, y: u32, s_x: u32, s_y: u32, rng: &mut impl Rng) -> Ray {
+        // let offset = Self::sample_square(rng);
+        let offset = self.sample_square_stratified(s_x, s_y, rng);
         let pixel_sample = self.pixel00_loc
             + (x as f32 + offset.x) * self.pixel_delta_u
             + (y as f32 + offset.y) * self.pixel_delta_v;
@@ -196,6 +220,16 @@ impl Camera {
         let ray_direction = pixel_sample - ray_origin;
 
         Ray::new(ray_origin, ray_direction)
+    }
+
+    // random point in subpixel in stratified grid unit square [-0.5, -0.5]-[+0.5, +0.5]
+    #[inline(always)]
+    fn sample_square_stratified(&self, s_x: u32, s_y: u32, rng: &mut impl Rng) -> Vec3 {
+        Vec3::new(
+            ((s_x as f32 + rng.random::<f32>()) * self.recip_sqrt_spp) - 0.5,
+            ((s_y as f32 + rng.random::<f32>()) * self.recip_sqrt_spp) - 0.5,
+            0.0,
+        )
     }
 
     // random point in [-0.5, -0.5]-[+0.5, +0.5] unit square

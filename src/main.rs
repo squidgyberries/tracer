@@ -726,6 +726,127 @@ pub fn transform_test() -> anyhow::Result<()> {
     Ok(())
 }
 
+fn cornell_boxes() -> anyhow::Result<()> {
+    let mut world = HittableList::new();
+
+    let red_material = Arc::new(LambertianMaterial::new(
+        Arc::new(SolidColor::from_rgb(0.65, 0.05, 0.05)),
+        Vec3::ONE,
+    ));
+    let white_material = Arc::new(LambertianMaterial::new(
+        Arc::new(SolidColor::from_rgb(0.73, 0.73, 0.73)),
+        Vec3::ONE,
+    ));
+    let green_material = Arc::new(LambertianMaterial::new(
+        Arc::new(SolidColor::from_rgb(0.12, 0.45, 0.15)),
+        Vec3::ONE,
+    ));
+    let light_material = Arc::new(DiffuseLightMaterial::new(
+        Arc::new(SolidColor::from_rgb(1.0, 1.0, 1.0)),
+        15.0,
+    ));
+
+    // left wall
+    world.add(Arc::new(Quad::new(
+        vec3(0.0, 0.0, 0.0),
+        vec3(0.0, 0.0, -555.0),
+        vec3(0.0, 555.0, 0.0),
+        [Vec2::ZERO; 4],
+        red_material,
+    )));
+    // right wall
+    world.add(Arc::new(Quad::new(
+        vec3(555.0, 0.0, -555.0),
+        vec3(0.0, 0.0, 555.0),
+        vec3(0.0, 555.0, 0.0),
+        [Vec2::ZERO; 4],
+        green_material,
+    )));
+    // floor
+    world.add(Arc::new(Quad::new(
+        vec3(0.0, 0.0, 0.0),
+        vec3(555.0, 0.0, 0.0),
+        vec3(0.0, 0.0, -555.0),
+        [Vec2::ZERO; 4],
+        white_material.clone(),
+    )));
+    // back wall
+    world.add(Arc::new(Quad::new(
+        vec3(0.0, 0.0, -555.0),
+        vec3(555.0, 0.0, 0.0),
+        vec3(0.0, 555.0, 0.0),
+        [Vec2::ZERO; 4],
+        white_material.clone(),
+    )));
+    // ceiling
+    world.add(Arc::new(Quad::new(
+        vec3(0.0, 555.0, -555.0),
+        vec3(555.0, 0.0, 0.0),
+        vec3(0.0, 0.0, 555.0),
+        [Vec2::ZERO; 4],
+        white_material.clone(),
+    )));
+    // light
+    world.add(Arc::new(Quad::new(
+        vec3(212.0, 554.999, -343.0),
+        vec3(131.0, 0.0, 0.0),
+        vec3(0.0, 0.0, 131.0),
+        [Vec2::ZERO; 4],
+        light_material,
+    )));
+
+    let cube_meshes = load_obj_meshes("resources/cube.obj", white_material.clone())?;
+
+    for cube_mesh in cube_meshes {
+        let cube_mesh_bvh = Arc::new(BvhNode::from_hittable_list(cube_mesh, -1));
+        world.add(Arc::new(Transform::new(
+            cube_mesh_bvh.clone(),
+            &Mat4::from_scale_rotation_translation(
+                vec3(165.0, 330.0, 165.0),
+                Quat::from_euler(glam::EulerRot::XYZ, 0.0, deg_to_rad(15.0), 0.0),
+                vec3(207.5, 165.0, -377.5),
+            ),
+        )));
+        world.add(Arc::new(Transform::new(
+            cube_mesh_bvh.clone(),
+            &Mat4::from_scale_rotation_translation(
+                vec3(165.0, 165.0, 165.0),
+                Quat::from_euler(glam::EulerRot::XYZ, 0.0, deg_to_rad(-18.0), 0.0),
+                vec3(342.5, 82.5, -147.5),
+            ),
+        )));
+    }
+
+    let bvh = BvhNode::from_hittable_list(world, -1);
+
+    let image_width = 800;
+    let image_height = 800;
+
+    let camera = Camera::new(
+        image_width,
+        image_height,
+        40.0,
+        vec3(277.5, 277.5, 800.0),
+        vec3(277.5, 277.5, 0.0),
+        vec3(0.0, 1.0, 0.0),
+        0.0,
+        1.0,
+        64,
+        10,
+        vec3(0.0, 0.0, 0.0),
+    );
+
+    let mut imgbuf = image::RgbImage::new(image_width as u32, image_height as u32);
+
+    // rayon::ThreadPoolBuilder::new().num_threads(10).build_global()?;
+
+    camera.render_threaded(&bvh, &mut imgbuf);
+
+    imgbuf.save("output.png")?;
+
+    Ok(())
+}
+
 fn cornell_smoke_boxes() -> anyhow::Result<()> {
     let mut world = HittableList::new();
 
@@ -799,7 +920,8 @@ fn cornell_smoke_boxes() -> anyhow::Result<()> {
 
     for cube_mesh in cube_meshes {
         let cube_mesh_bvh = Arc::new(BvhNode::from_hittable_list(cube_mesh, -1));
-        world.add(Arc::new(ConstantMedium::new( // broken with transform after constantmedium
+        world.add(Arc::new(ConstantMedium::new(
+            // broken with transform after constantmedium
             Arc::new(Transform::new(
                 cube_mesh_bvh.clone(),
                 &Mat4::from_scale_rotation_translation(
@@ -860,7 +982,7 @@ fn cornell_smoke_boxes() -> anyhow::Result<()> {
 }
 
 fn main() -> anyhow::Result<()> {
-    match 7 {
+    match 9 {
         1 => spheres(),
         2 => checkered_spheres(),
         3 => earth(),
@@ -869,7 +991,8 @@ fn main() -> anyhow::Result<()> {
         6 => monkey(),
         7 => cornell_monkey(),
         8 => transform_test(),
-        9 => cornell_smoke_boxes(),
+        9 => cornell_boxes(),
+        10 => cornell_smoke_boxes(),
         _ => spheres(),
     }
 }
