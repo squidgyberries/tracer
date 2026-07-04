@@ -2,7 +2,6 @@ use crate::interval::Interval;
 
 use glam::Vec3;
 
-#[inline(always)]
 fn linear_to_gamma(linear: f32) -> f32 {
     if linear > 0.0 {
         return linear.sqrt();
@@ -12,9 +11,19 @@ fn linear_to_gamma(linear: f32) -> f32 {
 
 #[inline]
 pub fn vec3_to_rgb8(color_vec: Vec3) -> image::Rgb<u8> {
-    let r = linear_to_gamma(color_vec.x);
-    let g = linear_to_gamma(color_vec.y);
-    let b = linear_to_gamma(color_vec.z);
+    let mut r = linear_to_gamma(color_vec.x);
+    let mut g = linear_to_gamma(color_vec.y);
+    let mut b = linear_to_gamma(color_vec.z);
+
+    if r != r {
+        r = 0.0;
+    }
+    if g != g {
+        g = 0.0;
+    }
+    if b != b {
+        b = 0.0;
+    }
 
     const INTENSITY_INTERVAL: Interval = Interval::new(0.0, 0.999);
     let r_byte = (256.0 * INTENSITY_INTERVAL.clamp(r)) as u8;

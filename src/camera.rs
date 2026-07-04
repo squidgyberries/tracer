@@ -1,13 +1,18 @@
-use std::sync::atomic::{AtomicBool, AtomicU32};
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, AtomicU32},
+};
 
 use crate::{
     color::vec3_to_rgb8,
     hit::{HitRecord, Hittable},
     interval::Interval,
+    pdf::{HittablePdf, MixturePdf, Pdf},
     ray::Ray,
-    util::{deg_to_rad, random_in_unit_disk},
+    util::random_in_unit_disk,
 };
 
+use either::Either;
 use glam::Vec3;
 use rand::Rng;
 use rayon::iter::ParallelIterator;
@@ -42,7 +47,12 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn render_threaded(&self, world: &impl Hittable, imgbuf: &mut image::RgbImage) {
+    pub fn render_threaded(
+        &self,
+        world: &impl Hittable,
+        lights: Arc<dyn Hittable>,
+        imgbuf: &mut image::RgbImage,
+    ) {
         let start = std::time::Instant::now();
 
         let pixels_done = AtomicU32::new(0);
@@ -73,7 +83,8 @@ impl Camera {
                         for s_y in 0..self.sqrt_spp {
                             for s_x in 0..self.sqrt_spp {
                                 let ray = self.get_ray(x, y, s_x, s_y, rng);
-                                pixel_color += self.ray_color(ray, self.max_depth, world, rng);
+                                pixel_color +=
+                                    self.ray_color(ray, self.max_depth, world, lights.clone(), rng);
                             }
                         }
 
@@ -89,7 +100,13 @@ impl Camera {
         eprintln!("Rendering finished in {:?}", start.elapsed());
     }
 
-    pub fn render(&self, world: &impl Hittable, imgbuf: &mut image::RgbImage, rng: &mut impl Rng) {
+    pub fn render(
+        &self,
+        world: &impl Hittable,
+        lights: Arc<dyn Hittable>,
+        imgbuf: &mut image::RgbImage,
+        rng: &mut impl Rng,
+    ) {
         let start = std::time::Instant::now();
 
         let mut pixel_num = 1;
@@ -108,7 +125,7 @@ impl Camera {
             for s_y in 0..self.sqrt_spp {
                 for s_x in 0..self.sqrt_spp {
                     let ray = self.get_ray(x, y, s_x, s_y, rng);
-                    pixel_color += self.ray_color(ray, self.max_depth, world, rng);
+                    pixel_color += self.ray_color(ray, self.max_depth, world, lights.clone(), rng);
                 }
             }
 
@@ -145,7 +162,7 @@ impl Camera {
 
         // Determine viewport dimensions
         // let focal_length: f32 = (lookfrom - lookat).length();
-        let theta = deg_to_rad(vfov);
+        let theta = vfov.to_radians();
         let h = (theta / 2.0).tan();
         let viewport_height: f32 = 2.0 * h * focus_dist;
         let viewport_width = viewport_height * aspect_ratio;
@@ -169,7 +186,7 @@ impl Camera {
         let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
         // Calculate the camera defocus disk basis vectors
-        let defocus_radius = focus_dist * deg_to_rad(defocus_angle / 2.0).tan();
+        let defocus_radius = focus_dist * (defocus_angle / 2.0).to_radians().tan();
         let defocus_disk_u = u * defocus_radius;
         let defocus_disk_v = v * defocus_radius;
 
@@ -223,7 +240,6 @@ impl Camera {
     }
 
     // random point in subpixel in stratified grid unit square [-0.5, -0.5]-[+0.5, +0.5]
-    #[inline(always)]
     fn sample_square_stratified(&self, s_x: u32, s_y: u32, rng: &mut impl Rng) -> Vec3 {
         Vec3::new(
             ((s_x as f32 + rng.random::<f32>()) * self.recip_sqrt_spp) - 0.5,
@@ -233,7 +249,6 @@ impl Camera {
     }
 
     // random point in [-0.5, -0.5]-[+0.5, +0.5] unit square
-    #[inline(always)]
     fn sample_square(rng: &mut impl Rng) -> Vec3 {
         Vec3::new(
             rng.random_range(-0.5..=0.5),
@@ -243,7 +258,6 @@ impl Camera {
     }
 
     // random point in the camera defocus disk
-    #[inline(always)]
     fn defocus_disk_sample(&self, rng: &mut impl Rng) -> Vec3 {
         let point = random_in_unit_disk(rng);
         self.center + (point.x * self.defocus_disk_u) + (point.y * self.defocus_disk_v)
@@ -254,6 +268,7 @@ impl Camera {
         ray: Ray,
         depth: i32,
         world: &impl Hittable,
+        lights: Arc<dyn Hittable>,
         rng: &mut impl rand::Rng,
     ) -> Vec3 {
         if depth <= 0 {
@@ -271,16 +286,42 @@ impl Camera {
             return self.background_color;
         }
 
-        let emitted_color = hit_record.material.emitted(hit_record.uv, hit_record.point);
+        let emitted_color =
+            hit_record
+                .material
+                .emitted(&hit_record, hit_record.uv, hit_record.point);
 
-        let (scatter, attenuation, scattered_ray) =
-            hit_record.material.scatter(ray, &hit_record, rng);
-        if !scatter {
+        let Some(scatter_record) = hit_record.material.scatter(ray, &hit_record, rng) else {
             return emitted_color;
+        };
+
+        match scatter_record.pdf_or_skip_ray {
+            Either::Left(scatter_pdf) => {
+                let lights_pdf = Arc::new(HittablePdf::new(lights.clone(), hit_record.point));
+                let mixture_pdf = MixturePdf::new(lights_pdf, scatter_pdf);
+
+                let scattered_ray = Ray::new(hit_record.point, mixture_pdf.generate(rng));
+                let pdf_value = mixture_pdf.value(scattered_ray.direction, rng);
+
+                if !pdf_value.is_finite() || pdf_value <= 0.0 {
+                    return emitted_color;
+                }
+
+                let scattering_pdf =
+                    hit_record
+                        .material
+                        .scattering_pdf(ray, &hit_record, scattered_ray);
+
+                let sample_color = self.ray_color(scattered_ray, depth - 1, world, lights, rng);
+                let scatter_color =
+                    (scatter_record.attenuation * scattering_pdf * sample_color) / pdf_value;
+
+                emitted_color + scatter_color
+            }
+            Either::Right(skip_pdf_ray) => {
+                scatter_record.attenuation
+                    * self.ray_color(skip_pdf_ray, depth - 1, world, lights, rng)
+            }
         }
-
-        let scatter_color = attenuation * self.ray_color(scattered_ray, depth - 1, world, rng);
-
-        emitted_color + scatter_color
     }
 }

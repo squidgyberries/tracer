@@ -1,7 +1,4 @@
-use std::{f32, sync::Arc};
-
-use glam::Vec3;
-use rand::{Rng, RngCore};
+use std::sync::Arc;
 
 use crate::{
     aabb::Aabb,
@@ -11,6 +8,9 @@ use crate::{
     ray::Ray,
 };
 
+use glam::Vec3;
+use rand::{Rng, RngCore};
+
 #[derive(Debug)]
 pub struct ConstantMedium {
     boundary: Arc<dyn Hittable>,
@@ -19,7 +19,6 @@ pub struct ConstantMedium {
 }
 
 impl ConstantMedium {
-    #[inline(always)]
     pub fn new(
         boundary: Arc<dyn Hittable>,
         density: f32,
@@ -91,8 +90,15 @@ impl Hittable for ConstantMedium {
         true
     }
 
-    #[inline(always)]
     fn bounding_box(&self) -> Aabb {
         self.boundary.bounding_box()
+    }
+
+    fn pdf_value(&self, _origin: Vec3, _direction: Vec3, _rng: &mut dyn RngCore) -> f32 {
+        0.0
+    }
+
+    fn random(&self, _origin: Vec3, _rng: &mut dyn RngCore) -> Vec3 {
+        Vec3::X
     }
 }

@@ -85,8 +85,15 @@ impl Hittable for Transform {
         true
     }
 
-    #[inline(always)]
     fn bounding_box(&self) -> Aabb {
         self.bbox
+    }
+
+    fn pdf_value(&self, _origin: Vec3, _direction: Vec3, _rng: &mut dyn RngCore) -> f32 {
+        0.0
+    }
+
+    fn random(&self, _origin: Vec3, _rng: &mut dyn RngCore) -> Vec3 {
+        Vec3::X
     }
 }

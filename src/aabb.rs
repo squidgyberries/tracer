@@ -20,14 +20,12 @@ impl Aabb {
         Interval::EVERYTHING,
     );
 
-    #[inline(always)]
     pub const fn new(x: Interval, y: Interval, z: Interval) -> Self {
         let mut out = Self { x, y, z };
         out.pad_to_mins();
         out
     }
 
-    #[inline(always)]
     pub fn from_corners(a: Vec3, b: Vec3) -> Self {
         let min = a.min(b);
         let max = a.max(b);
@@ -40,7 +38,6 @@ impl Aabb {
         .padded_to_mins()
     }
 
-    #[inline(always)]
     pub fn get_corners(&self) -> (Vec3, Vec3) {
         (
             Vec3::new(self.x.min, self.y.min, self.z.min),
@@ -48,7 +45,6 @@ impl Aabb {
         )
     }
 
-    #[inline(always)]
     pub const fn merged(a: Self, b: Self) -> Self {
         Self::new(
             Interval::enclosing(a.x, b.x),
@@ -57,14 +53,12 @@ impl Aabb {
         )
     }
 
-    #[inline(always)]
     pub const fn merge(&mut self, other: Self) {
         self.x = Interval::enclosing(self.x, other.x);
         self.y = Interval::enclosing(self.y, other.y);
         self.z = Interval::enclosing(self.z, other.z);
     }
 
-    #[inline(always)]
     pub const fn pad_to_mins(&mut self) {
         const DELTA: f32 = 0.001;
         if self.x.size() < DELTA {
@@ -78,7 +72,6 @@ impl Aabb {
         }
     }
 
-    #[inline(always)]
     pub const fn padded_to_mins(&self) -> Self {
         const DELTA: f32 = 0.001;
         Self::new(
@@ -131,7 +124,6 @@ impl Aabb {
         true
     }
 
-    #[inline(always)]
     pub const fn longest_axis(&self) -> usize {
         return if self.x.size() > self.y.size() {
             if self.x.size() > self.z.size() { 0 } else { 2 }
@@ -169,14 +161,12 @@ impl IndexMut<usize> for Aabb {
 impl Add<Vec3> for Aabb {
     type Output = Self;
 
-    #[inline(always)]
     fn add(self, rhs: Vec3) -> Self::Output {
         Self::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
     }
 }
 
 impl AddAssign<Vec3> for Aabb {
-    #[inline(always)]
     fn add_assign(&mut self, rhs: Vec3) {
         self.x += rhs.x;
         self.y += rhs.y;
@@ -187,14 +177,12 @@ impl AddAssign<Vec3> for Aabb {
 impl Sub<Vec3> for Aabb {
     type Output = Self;
 
-    #[inline(always)]
     fn sub(self, rhs: Vec3) -> Self::Output {
         Self::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
     }
 }
 
 impl SubAssign<Vec3> for Aabb {
-    #[inline(always)]
     fn sub_assign(&mut self, rhs: Vec3) {
         self.x -= rhs.x;
         self.y -= rhs.y;
@@ -205,14 +193,12 @@ impl SubAssign<Vec3> for Aabb {
 impl Mul<Vec3> for Aabb {
     type Output = Self;
 
-    #[inline(always)]
     fn mul(self, rhs: Vec3) -> Self::Output {
         Self::new(self.x * rhs.x, self.y * rhs.y, self.z * rhs.z)
     }
 }
 
 impl MulAssign<Vec3> for Aabb {
-    #[inline(always)]
     fn mul_assign(&mut self, rhs: Vec3) {
         *self = *self * rhs;
     }
@@ -227,7 +213,6 @@ impl Div<Vec3> for Aabb {
 }
 
 impl DivAssign<Vec3> for Aabb {
-    #[inline(always)]
     fn div_assign(&mut self, rhs: Vec3) {
         *self = *self / rhs;
     }

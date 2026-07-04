@@ -2,13 +2,22 @@ use std::{fmt::Debug, sync::Arc};
 
 use crate::{
     hit::HitRecord,
+    onb::Onb,
+    pdf::{CosinePdf, Pdf, SpherePdf},
     ray::Ray,
     texture::{SolidColor, Texture},
-    util::{random_unit_vec3, vec3_near_zero},
+    util::{random_cosine_direction, random_unit_vec3},
 };
 
+use either::Either;
 use glam::{Vec2, Vec3};
 use rand::{Rng, RngCore};
+
+#[derive(Clone, Debug)]
+pub struct ScatterRecord {
+    pub attenuation: Vec3,
+    pub pdf_or_skip_ray: Either<Arc<dyn Pdf>, Ray>,
+}
 
 // is there a better way to do this?
 pub static DEFAULT_MATERIAL: std::sync::LazyLock<Arc<dyn Material>> =
@@ -25,9 +34,11 @@ pub trait Material: Send + Sync + Debug {
         ray_in: Ray,
         hit_record: &HitRecord,
         rng: &mut dyn RngCore,
-    ) -> (bool, Vec3, Ray);
+    ) -> Option<ScatterRecord>;
 
-    fn emitted(&self, uv: Vec2, point: Vec3) -> Vec3;
+    fn emitted(&self, hit_record: &HitRecord, uv: Vec2, point: Vec3) -> Vec3;
+
+    fn scattering_pdf(&self, ray_in: Ray, hit_record: &HitRecord, scattered: Ray) -> f32;
 }
 
 #[derive(Clone, Debug)]
@@ -37,7 +48,6 @@ pub struct LambertianMaterial {
 }
 
 impl LambertianMaterial {
-    #[inline(always)]
     pub const fn new(texture: Arc<dyn Texture>, diffuse_p: Vec3) -> Self {
         Self { texture, diffuse_p }
     }
@@ -48,41 +58,28 @@ impl Material for LambertianMaterial {
         &self,
         _ray_in: Ray,
         hit_record: &HitRecord,
-        rng: &mut dyn RngCore,
-    ) -> (bool, Vec3, Ray) {
-        let mut scatter_direction = hit_record.normal + random_unit_vec3(rng);
+        _rng: &mut dyn RngCore,
+    ) -> Option<ScatterRecord> {
+        let attenuation = self.texture.value(hit_record.uv, hit_record.point);
+        let pdf = Arc::new(CosinePdf::new(hit_record.normal));
 
-        if vec3_near_zero(scatter_direction) {
-            scatter_direction = hit_record.normal;
-        }
-
-        let mut attenuation = Vec3::ZERO;
-        let random_scatter: f32 = rng.random();
-        let scatter_r = random_scatter < self.diffuse_p.x;
-        let scatter_g = random_scatter < self.diffuse_p.y;
-        let scatter_b = random_scatter < self.diffuse_p.z;
-        let texture_value = self.texture.value(hit_record.uv, hit_record.point);
-
-        if scatter_r {
-            attenuation.x = texture_value.x / self.diffuse_p.x;
-        }
-        if scatter_g {
-            attenuation.y = texture_value.y / self.diffuse_p.y;
-        }
-        if scatter_b {
-            attenuation.z = texture_value.z / self.diffuse_p.z;
-        }
-
-        (
-            scatter_r || scatter_g || scatter_b,
+        Some(ScatterRecord {
             attenuation,
-            Ray::new(hit_record.point, scatter_direction),
-        )
+            pdf_or_skip_ray: Either::Left(pdf),
+        })
     }
 
-    #[inline(always)]
-    fn emitted(&self, _uv: Vec2, _point: Vec3) -> Vec3 {
+    fn emitted(&self, _hit_record: &HitRecord, _uv: Vec2, _point: Vec3) -> Vec3 {
         Vec3::ZERO
+    }
+
+    fn scattering_pdf(&self, ray_in: Ray, hit_record: &HitRecord, scattered: Ray) -> f32 {
+        let cos_theta = hit_record.normal.dot(scattered.direction.normalize());
+        if cos_theta < 0.0 {
+            0.0
+        } else {
+            cos_theta * std::f32::consts::FRAC_1_PI
+        }
     }
 }
 
@@ -93,7 +90,6 @@ pub struct MetalMaterial {
 }
 
 impl MetalMaterial {
-    #[inline(always)]
     pub const fn new(texture: Arc<dyn Texture>, fuzz: f32) -> Self {
         Self { texture, fuzz }
     }
@@ -105,19 +101,25 @@ impl Material for MetalMaterial {
         ray_in: Ray,
         hit_record: &HitRecord,
         rng: &mut dyn RngCore,
-    ) -> (bool, Vec3, Ray) {
-        let mut reflected = ray_in.direction.reflect(hit_record.normal);
-        reflected = reflected.normalize() + (self.fuzz * random_unit_vec3(rng));
-        (
-            true,
-            self.texture.value(hit_record.uv, hit_record.point),
-            Ray::new(hit_record.point, reflected),
-        )
+    ) -> Option<ScatterRecord> {
+        let attenuation = self.texture.value(hit_record.uv, hit_record.point);
+
+        let reflected = ray_in.direction.reflect(hit_record.normal).normalize();
+        let reflected_fuzzed = reflected.normalize() + (self.fuzz * random_unit_vec3(rng));
+        let ray = Ray::new(hit_record.point, reflected_fuzzed);
+
+        Some(ScatterRecord {
+            attenuation,
+            pdf_or_skip_ray: Either::Right(ray),
+        })
     }
 
-    #[inline(always)]
-    fn emitted(&self, _uv: Vec2, _point: Vec3) -> Vec3 {
+    fn emitted(&self, _hit_record: &HitRecord, _uv: Vec2, _point: Vec3) -> Vec3 {
         Vec3::ZERO
+    }
+
+    fn scattering_pdf(&self, ray_in: Ray, hit_record: &HitRecord, scattered: Ray) -> f32 {
+        0.0
     }
 }
 
@@ -127,12 +129,10 @@ pub struct DielectricMaterial {
 }
 
 impl DielectricMaterial {
-    #[inline(always)]
     pub const fn new(refraction_index: f32) -> Self {
         Self { refraction_index }
     }
 
-    #[inline(always)]
     fn dielectric_reflectance(cosine: f32, refraction_index: f32) -> f32 {
         let mut r0 = (1.0 - refraction_index) / (1.0 + refraction_index);
         r0 *= r0;
@@ -146,30 +146,50 @@ impl Material for DielectricMaterial {
         ray_in: Ray,
         hit_record: &HitRecord,
         rng: &mut dyn RngCore,
-    ) -> (bool, Vec3, Ray) {
+    ) -> Option<ScatterRecord> {
+        let attenuation = Vec3::ONE;
+
         let ri = if hit_record.front_face {
             1.0 / self.refraction_index
         } else {
             self.refraction_index
         };
 
-        // REIMPLEMENT
         let unit_direction = ray_in.direction.normalize();
         let cos_theta = (-unit_direction).dot(hit_record.normal).min(1.0);
+        let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
 
-        let mut direction = unit_direction.normalize().refract(hit_record.normal, ri);
-        if direction == Vec3::ZERO
-            || Self::dielectric_reflectance(cos_theta, ri) > rng.random::<f32>()
+        let cannot_refract = ri * sin_theta > 1.0;
+
+        let direction = if cannot_refract || Self::reflectance(cos_theta, ri) > rng.random::<f32>()
         {
-            direction = ray_in.direction.reflect(hit_record.normal);
-        }
+            unit_direction.reflect(hit_record.normal)
+        } else {
+            unit_direction.refract(hit_record.normal, ri)
+        };
 
-        (true, Vec3::ONE, Ray::new(hit_record.point, direction))
+        let ray = Ray::new(hit_record.point, direction);
+
+        Some(ScatterRecord {
+            attenuation,
+            pdf_or_skip_ray: Either::Right(ray),
+        })
     }
 
-    #[inline(always)]
-    fn emitted(&self, _uv: Vec2, _point: Vec3) -> Vec3 {
+    fn emitted(&self, _hit_record: &HitRecord, _uv: Vec2, _point: Vec3) -> Vec3 {
         Vec3::ZERO
+    }
+
+    fn scattering_pdf(&self, ray_in: Ray, hit_record: &HitRecord, scattered: Ray) -> f32 {
+        0.0
+    }
+}
+
+impl DielectricMaterial {
+    fn reflectance(cosine: f32, refraction_index: f32) -> f32 {
+        let r0 = (1.0 - refraction_index) / (1.0 + refraction_index);
+        let r0 = r0 * r0;
+        r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
     }
 }
 
@@ -180,26 +200,30 @@ pub struct DiffuseLightMaterial {
 }
 
 impl DiffuseLightMaterial {
-    #[inline(always)]
     pub const fn new(texture: Arc<dyn Texture>, strength: f32) -> Self {
         Self { texture, strength }
     }
 }
 
 impl Material for DiffuseLightMaterial {
-    #[inline(always)]
     fn scatter(
         &self,
         _ray_in: Ray,
         _hit_record: &HitRecord,
         _rng: &mut dyn RngCore,
-    ) -> (bool, Vec3, Ray) {
-        (false, Vec3::ZERO, Ray::default())
+    ) -> Option<ScatterRecord> {
+        None
     }
 
-    #[inline(always)]
-    fn emitted(&self, uv: Vec2, point: Vec3) -> Vec3 {
+    fn emitted(&self, hit_record: &HitRecord, uv: Vec2, point: Vec3) -> Vec3 {
+        if !hit_record.front_face {
+            return Vec3::ZERO;
+        }
         self.texture.value(uv, point) * self.strength
+    }
+
+    fn scattering_pdf(&self, ray_in: Ray, hit_record: &HitRecord, scattered: Ray) -> f32 {
+        0.0
     }
 }
 
@@ -209,29 +233,32 @@ pub struct IsotropicMaterial {
 }
 
 impl IsotropicMaterial {
-    #[inline(always)]
     pub const fn new(texture: Arc<dyn Texture>) -> Self {
         Self { texture }
     }
 }
 
 impl Material for IsotropicMaterial {
-    #[inline(always)]
     fn scatter(
         &self,
         _ray_in: Ray,
         hit_record: &HitRecord,
         rng: &mut dyn RngCore,
-    ) -> (bool, Vec3, Ray) {
-        (
-            true,
-            self.texture.value(hit_record.uv, hit_record.point),
-            Ray::new(hit_record.point, crate::util::random_unit_vec3(rng)),
-        )
+    ) -> Option<ScatterRecord> {
+        let attenuation = self.texture.value(hit_record.uv, hit_record.point);
+        let pdf = Arc::new(SpherePdf);
+
+        Some(ScatterRecord {
+            attenuation,
+            pdf_or_skip_ray: Either::Left(pdf),
+        })
     }
 
-    #[inline(always)]
-    fn emitted(&self, _uv: Vec2, _point: Vec3) -> Vec3 {
+    fn emitted(&self, _hit_record: &HitRecord, _uv: Vec2, _point: Vec3) -> Vec3 {
         Vec3::ZERO
+    }
+
+    fn scattering_pdf(&self, ray_in: Ray, hit_record: &HitRecord, scattered: Ray) -> f32 {
+        std::f32::consts::FRAC_1_PI * 0.25 // 1 / 4pi
     }
 }

@@ -28,7 +28,6 @@ impl HitRecord {
 }
 
 impl Default for HitRecord {
-    #[inline(always)]
     fn default() -> Self {
         Self {
             point: Default::default(),
@@ -51,6 +50,10 @@ pub trait Hittable: Send + Sync + Debug {
     ) -> bool;
 
     fn bounding_box(&self) -> Aabb;
+
+    fn pdf_value(&self, origin: Vec3, direction: Vec3, rng: &mut dyn RngCore) -> f32;
+
+    fn random(&self, origin: Vec3, rng: &mut dyn RngCore) -> Vec3;
 }
 
 #[derive(Debug)]
@@ -69,5 +72,13 @@ impl Hittable for EmptyHittable {
 
     fn bounding_box(&self) -> Aabb {
         Aabb::EMPTY
+    }
+
+    fn pdf_value(&self, _origin: Vec3, _direction: Vec3, _rng: &mut dyn RngCore) -> f32 {
+        0.0
+    }
+
+    fn random(&self, _origin: Vec3, _rng: &mut dyn RngCore) -> Vec3 {
+        Vec3::X
     }
 }

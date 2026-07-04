@@ -9,7 +9,7 @@ use crate::{
 };
 
 use glam::{Vec2, Vec3};
-use rand::RngCore;
+use rand::{Rng, RngCore};
 
 #[derive(Clone, Debug)]
 pub struct Quad {
@@ -22,10 +22,10 @@ pub struct Quad {
     normal: Vec3,
     d: f32,
     w: Vec3,
+    area: f32,
 }
 
 impl Quad {
-    #[inline(always)]
     pub fn new(q: Vec3, u: Vec3, v: Vec3, uvs: [Vec2; 4], material: Arc<dyn Material>) -> Self {
         let bbox_diagonal1 = Aabb::from_corners(q, q + u + v);
         let bbox_diagonal2 = Aabb::from_corners(q + u, q + v);
@@ -35,7 +35,8 @@ impl Quad {
         let normal = n.normalize();
         let d = normal.dot(q);
         let w = n / n.dot(n);
-        // let w = n / n.length_squared();
+
+        let area = n.length();
 
         Self {
             q,
@@ -47,10 +48,10 @@ impl Quad {
             normal,
             d,
             w,
+            area,
         }
     }
 
-    #[inline(always)]
     pub const fn is_interior(&self, a: f32, b: f32) -> bool {
         const UNIT_INTERVAL: Interval = Interval::new(0.0, 1.0);
         UNIT_INTERVAL.contains(a) && UNIT_INTERVAL.contains(b)
@@ -105,8 +106,29 @@ impl Hittable for Quad {
         true
     }
 
-    #[inline(always)]
     fn bounding_box(&self) -> Aabb {
         self.bbox
+    }
+
+    fn pdf_value(&self, origin: Vec3, direction: Vec3, rng: &mut dyn RngCore) -> f32 {
+        let mut hit_record = HitRecord::default();
+        if !self.hit(
+            Ray::new(origin, direction),
+            Interval::new(0.001, f32::INFINITY),
+            &mut hit_record,
+            rng,
+        ) {
+            return 0.0;
+        }
+
+        let distance_squared = hit_record.t * hit_record.t * direction.length_squared();
+        let cosine = (direction.dot(hit_record.normal) / direction.length()).abs();
+
+        distance_squared / (cosine * self.area)
+    }
+
+    fn random(&self, origin: Vec3, rng: &mut dyn RngCore) -> Vec3 {
+        let p = self.q + (rng.random::<f32>() * self.u) + (rng.random::<f32>() * self.v);
+        p - origin
     }
 }

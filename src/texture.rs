@@ -14,12 +14,10 @@ pub struct SolidColor {
 }
 
 impl SolidColor {
-    #[inline(always)]
     pub const fn new(albedo: Vec3) -> Self {
         Self { albedo }
     }
 
-    #[inline(always)]
     pub fn from_rgb(r: f32, g: f32, b: f32) -> Self {
         Self::new(Vec3::new(r, g, b))
     }
@@ -39,7 +37,6 @@ pub struct SpatialChecker {
 }
 
 impl SpatialChecker {
-    #[inline(always)]
     pub const fn new(scale: f32, even: Arc<dyn Texture>, odd: Arc<dyn Texture>) -> Self {
         Self {
             scale_inv: 1.0 / scale,
@@ -69,12 +66,10 @@ pub struct ImageTexture {
 }
 
 impl ImageTexture {
-    #[inline(always)]
     pub const fn new(image: image::Rgb32FImage) -> Self {
         Self { image }
     }
 
-    #[inline(always)]
     pub fn load(path: impl AsRef<std::path::Path>) -> anyhow::Result<Self> {
         Ok(Self::new(
             image::ImageReader::open(path)?

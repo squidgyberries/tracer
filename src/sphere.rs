@@ -1,15 +1,11 @@
-use std::sync::Arc;
+use std::{f32::consts::PI, sync::Arc};
 
 use crate::{
-    aabb::Aabb,
-    hit::{HitRecord, Hittable},
-    interval::Interval,
-    material::Material,
-    ray::Ray,
+    aabb::Aabb, hit::{HitRecord, Hittable}, interval::Interval, material::Material, onb::Onb, ray::Ray
 };
 
 use glam::{Vec2, Vec3};
-use rand::RngCore;
+use rand::{Rng, RngCore};
 
 #[derive(Clone, Debug)]
 pub struct Sphere {
@@ -20,7 +16,6 @@ pub struct Sphere {
 }
 
 impl Sphere {
-    #[inline(always)]
     pub fn new(center: Vec3, radius: f32, material: Arc<dyn Material>) -> Self {
         let r = radius.max(0.0);
         let rvec = Vec3::splat(r);
@@ -37,12 +32,27 @@ impl Sphere {
         // u: [0,1] of angle around y axis from x=-1.
         // v: [0,1] of angle from y=-1 to y=+1.
         let theta = (-point.y).acos();
-        let phi = (-point.z).atan2(point.x) + std::f32::consts::PI;
+        let phi = (-point.z).atan2(point.x) + PI;
 
         Vec2::new(
-            phi / (2.0 * std::f32::consts::PI),
-            theta / std::f32::consts::PI,
+            phi / (2.0 * PI),
+            theta / PI,
         )
+    }
+
+    fn random_to_sphere(radius: f32, distance_squared: f32, rng: &mut dyn RngCore) -> Vec3 {
+        let r1 = rng.random::<f32>();
+        let r2 = rng.random::<f32>();
+        let ratio = (radius * radius / distance_squared).min(1.0);
+        let z = 1.0 + r2 * ((1.0 - ratio).sqrt() - 1.0);
+        // let z = 1.0 + r2 * ((1.0 - radius * radius / distance_squared).sqrt() - 1.0);
+
+        let theta = 2.0 * PI * r1;
+        let sin_phi = (1.0 - z * z).sqrt();
+        let x = theta.cos() * sin_phi;
+        let y = theta.sin() * sin_phi;
+
+        Vec3::new(x, y, z)
     }
 }
 
@@ -86,8 +96,34 @@ impl Hittable for Sphere {
         true
     }
 
-    #[inline(always)]
     fn bounding_box(&self) -> Aabb {
         self.bbox
+    }
+
+    fn pdf_value(&self, origin: Vec3, direction: Vec3, rng: &mut dyn RngCore) -> f32 {
+        let mut hit_record = HitRecord::default();
+        if !self.hit(
+            Ray::new(origin, direction),
+            Interval::new(0.001, f32::INFINITY),
+            &mut hit_record,
+            rng,
+        ) {
+            return 0.0;
+        }
+
+        let distance_squared = (self.center - origin).length_squared();
+        let ratio = (self.radius * self.radius / distance_squared).min(1.0);
+        let cos_theta_max = (1.0 - ratio).sqrt();
+        // let cos_theta_max = (1.0 - self.radius * self.radius / distance_squared).sqrt();
+        let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);
+
+        1.0 / solid_angle
+    }
+
+    fn random(&self, origin: Vec3, rng: &mut dyn RngCore) -> Vec3 {
+        let direction = self.center - origin;
+        let distance_squared = direction.length_squared();
+        let uvw = Onb::new(direction);
+        uvw.transform(Self::random_to_sphere(self.radius, distance_squared, rng))
     }
 }

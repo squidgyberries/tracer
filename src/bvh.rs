@@ -1,3 +1,4 @@
+use glam::Vec3;
 use rand::RngCore;
 
 use crate::{
@@ -66,7 +67,6 @@ impl BvhNode {
         Self { left, right, bbox }
     }
 
-    #[inline(always)]
     pub fn from_hittable_list(mut list: HittableList, max_depth: i32) -> Self {
         let len = list.objects.len();
         Self::new(&mut list.objects, 0, len, max_depth)
@@ -83,17 +83,14 @@ impl BvhNode {
         a_axis_interval.min.total_cmp(&b_axis_interval.min)
     }
 
-    #[inline(always)]
     fn box_x_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> std::cmp::Ordering {
         Self::box_compare(a, b, 0)
     }
 
-    #[inline(always)]
     fn box_y_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> std::cmp::Ordering {
         Self::box_compare(a, b, 1)
     }
 
-    #[inline(always)]
     fn box_z_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> std::cmp::Ordering {
         Self::box_compare(a, b, 2)
     }
@@ -123,8 +120,15 @@ impl Hittable for BvhNode {
         hit_left || hit_right
     }
 
-    #[inline(always)]
     fn bounding_box(&self) -> Aabb {
         self.bbox
+    }
+
+    fn pdf_value(&self, _origin: Vec3, _direction: Vec3, _rng: &mut dyn RngCore) -> f32 {
+        0.0
+    }
+
+    fn random(&self, _origin: Vec3, _rng: &mut dyn RngCore) -> Vec3 {
+        Vec3::X
     }
 }

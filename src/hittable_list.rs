@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use glam::Vec3;
-use rand::RngCore;
+use rand::{Rng, RngCore};
 
 use crate::{
     aabb::Aabb,
@@ -17,7 +17,6 @@ pub struct HittableList {
 }
 
 impl HittableList {
-    #[inline(always)]
     pub const fn new() -> Self {
         Self {
             objects: Vec::new(),
@@ -25,7 +24,6 @@ impl HittableList {
         }
     }
 
-    #[inline(always)]
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             objects: Vec::with_capacity(capacity),
@@ -33,13 +31,11 @@ impl HittableList {
         }
     }
 
-    #[inline(always)]
     pub fn add(&mut self, object: Arc<dyn Hittable>) {
         self.objects.push(object.clone());
         self.bbox.merge(object.bounding_box());
     }
 
-    #[inline(always)]
     pub fn update_bounding_box(&mut self) {
         let mut min = Vec3::MAX;
         let mut max = Vec3::MIN;
@@ -89,8 +85,22 @@ impl Hittable for HittableList {
         hit
     }
 
-    #[inline(always)]
     fn bounding_box(&self) -> Aabb {
         self.bbox
+    }
+
+    fn pdf_value(&self, origin: Vec3, direction: Vec3, rng: &mut dyn RngCore) -> f32 {
+        let weight = 1.0 / self.objects.len() as f32; // TODO: add specifiable weights
+        let mut sum = 0.0;
+
+        for object in &self.objects {
+            sum += weight * object.pdf_value(origin, direction, rng);
+        }
+
+        sum
+    }
+
+    fn random(&self, origin: Vec3, rng: &mut dyn RngCore) -> Vec3 {
+        self.objects[rng.random_range(0..self.objects.len())].random(origin, rng)
     }
 }

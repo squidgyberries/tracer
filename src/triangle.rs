@@ -23,7 +23,6 @@ pub struct Triangle {
 }
 
 impl Triangle {
-    #[inline(always)]
     pub fn new(a: Vec3, ab: Vec3, ac: Vec3, uvs: [Vec2; 3], material: Arc<dyn Material>) -> Self {
         let bbox_diagonal1 = Aabb::from_corners(a, a + ab);
         let bbox_diagonal2 = Aabb::from_corners(a, a + ac);
@@ -95,8 +94,15 @@ impl Hittable for Triangle {
         true
     }
 
-    #[inline(always)]
     fn bounding_box(&self) -> Aabb {
         self.bbox
+    }
+
+    fn pdf_value(&self, _origin: Vec3, _direction: Vec3, _rng: &mut dyn RngCore) -> f32 {
+        0.0
+    }
+
+    fn random(&self, _origin: Vec3, _rng: &mut dyn RngCore) -> Vec3 {
+        Vec3::X
     }
 }
