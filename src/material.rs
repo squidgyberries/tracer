@@ -1,32 +1,22 @@
 use std::{fmt::Debug, sync::Arc};
 
-use crate::{
-    hit::HitRecord,
-    onb::Onb,
-    pdf::{CosinePdf, Pdf, SpherePdf},
-    ray::Ray,
-    texture::{SolidColor, Texture},
-    util::{random_cosine_direction, random_unit_vec3},
-};
-
 use either::Either;
 use glam::{Vec2, Vec3};
 use rand::{Rng, RngCore};
+
+use crate::{
+    hit::HitRecord,
+    pdf::{CosinePdf, Pdf, SpherePdf},
+    ray::Ray,
+    texture::{SolidColor, Texture},
+    util::random_unit_vec3,
+};
 
 #[derive(Clone, Debug)]
 pub struct ScatterRecord {
     pub attenuation: Vec3,
     pub pdf_or_skip_ray: Either<Arc<dyn Pdf>, Ray>,
 }
-
-// is there a better way to do this?
-pub static DEFAULT_MATERIAL: std::sync::LazyLock<Arc<dyn Material>> =
-    std::sync::LazyLock::new(|| {
-        Arc::new(LambertianMaterial::new(
-            Arc::new(SolidColor::from_rgb(1.0, 0.0, 1.0)),
-            Vec3::ONE,
-        ))
-    });
 
 pub trait Material: Send + Sync + Debug {
     fn scatter(
@@ -44,12 +34,11 @@ pub trait Material: Send + Sync + Debug {
 #[derive(Clone, Debug)]
 pub struct LambertianMaterial {
     pub texture: Arc<dyn Texture>,
-    pub diffuse_p: Vec3,
 }
 
 impl LambertianMaterial {
-    pub const fn new(texture: Arc<dyn Texture>, diffuse_p: Vec3) -> Self {
-        Self { texture, diffuse_p }
+    pub const fn new(texture: Arc<dyn Texture>) -> Self {
+        Self { texture }
     }
 }
 
@@ -73,13 +62,21 @@ impl Material for LambertianMaterial {
         Vec3::ZERO
     }
 
-    fn scattering_pdf(&self, ray_in: Ray, hit_record: &HitRecord, scattered: Ray) -> f32 {
+    fn scattering_pdf(&self, _ray_in: Ray, hit_record: &HitRecord, scattered: Ray) -> f32 {
         let cos_theta = hit_record.normal.dot(scattered.direction.normalize());
         if cos_theta < 0.0 {
             0.0
         } else {
             cos_theta * std::f32::consts::FRAC_1_PI
         }
+    }
+}
+
+impl Default for LambertianMaterial {
+    fn default() -> Self {
+        Self::new(Arc::new(SolidColor::from_rgb(
+            1.0, 0.0, 1.0,
+        )))
     }
 }
 
@@ -118,7 +115,7 @@ impl Material for MetalMaterial {
         Vec3::ZERO
     }
 
-    fn scattering_pdf(&self, ray_in: Ray, hit_record: &HitRecord, scattered: Ray) -> f32 {
+    fn scattering_pdf(&self, _ray_in: Ray, _hit_record: &HitRecord, _scattered: Ray) -> f32 {
         0.0
     }
 }
@@ -180,7 +177,7 @@ impl Material for DielectricMaterial {
         Vec3::ZERO
     }
 
-    fn scattering_pdf(&self, ray_in: Ray, hit_record: &HitRecord, scattered: Ray) -> f32 {
+    fn scattering_pdf(&self, _ray_in: Ray, _hit_record: &HitRecord, _scattered: Ray) -> f32 {
         0.0
     }
 }
@@ -222,7 +219,7 @@ impl Material for DiffuseLightMaterial {
         self.texture.value(uv, point) * self.strength
     }
 
-    fn scattering_pdf(&self, ray_in: Ray, hit_record: &HitRecord, scattered: Ray) -> f32 {
+    fn scattering_pdf(&self, _ray_in: Ray, _hit_record: &HitRecord, _scattered: Ray) -> f32 {
         0.0
     }
 }
@@ -258,7 +255,7 @@ impl Material for IsotropicMaterial {
         Vec3::ZERO
     }
 
-    fn scattering_pdf(&self, ray_in: Ray, hit_record: &HitRecord, scattered: Ray) -> f32 {
+    fn scattering_pdf(&self, _ray_in: Ray, _hit_record: &HitRecord, _scattered: Ray) -> f32 {
         std::f32::consts::FRAC_1_PI * 0.25 // 1 / 4pi
     }
 }

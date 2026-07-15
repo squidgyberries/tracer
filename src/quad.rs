@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use glam::{Vec2, Vec3};
+use rand::{Rng, RngCore};
+
 use crate::{
     aabb::Aabb,
     hit::{HitRecord, Hittable},
@@ -7,9 +10,6 @@ use crate::{
     material::Material,
     ray::Ray,
 };
-
-use glam::{Vec2, Vec3};
-use rand::{Rng, RngCore};
 
 #[derive(Clone, Debug)]
 pub struct Quad {
@@ -59,18 +59,12 @@ impl Quad {
 }
 
 impl Hittable for Quad {
-    fn hit(
-        &self,
-        ray: Ray,
-        ray_t: Interval,
-        hit_record: &mut HitRecord,
-        _rng: &mut dyn RngCore,
-    ) -> bool {
+    fn hit(&self, ray: Ray, ray_t: Interval, _rng: &mut dyn RngCore) -> Option<HitRecord> {
         let denom = self.normal.dot(ray.direction);
 
         // ray is parallel to plane
         if denom.abs() < 1e-8 {
-            return false;
+            return None;
         }
         // back-face culling
         // if denom > -1e-8 {
@@ -79,7 +73,7 @@ impl Hittable for Quad {
 
         let t = (self.d - self.normal.dot(ray.origin)) / denom;
         if !ray_t.surrounds(t) {
-            return false;
+            return None;
         }
 
         // lies in quad?
@@ -89,7 +83,7 @@ impl Hittable for Quad {
         let beta = self.w.dot(self.u.cross(planar_hitpt_vector));
 
         if !self.is_interior(alpha, beta) {
-            return false;
+            return None;
         }
 
         let uv = (1.0 - alpha) * (1.0 - beta) * self.uvs[0]
@@ -97,13 +91,14 @@ impl Hittable for Quad {
             + (1.0 - alpha) * beta * self.uvs[2]
             + alpha * beta * self.uvs[3];
 
-        hit_record.t = t;
-        hit_record.point = hit_point;
-        hit_record.material = self.material.clone();
-        hit_record.normal = self.normal;
-        hit_record.front_face = denom <= 0.0;
-        hit_record.uv = uv;
-        true
+        Some(HitRecord {
+            point: hit_point,
+            normal: self.normal,
+            material: self.material.clone(),
+            t,
+            uv,
+            front_face: denom <= 0.0,
+        })
     }
 
     fn bounding_box(&self) -> Aabb {
@@ -111,15 +106,13 @@ impl Hittable for Quad {
     }
 
     fn pdf_value(&self, origin: Vec3, direction: Vec3, rng: &mut dyn RngCore) -> f32 {
-        let mut hit_record = HitRecord::default();
-        if !self.hit(
+        let Some(hit_record) = self.hit(
             Ray::new(origin, direction),
             Interval::new(0.001, f32::INFINITY),
-            &mut hit_record,
             rng,
-        ) {
+        ) else {
             return 0.0;
-        }
+        };
 
         let distance_squared = hit_record.t * hit_record.t * direction.length_squared();
         let cosine = (direction.dot(hit_record.normal) / direction.length()).abs();

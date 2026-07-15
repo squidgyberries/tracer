@@ -3,31 +3,25 @@ use std::sync::{
     atomic::{AtomicBool, AtomicU32},
 };
 
+use either::Either;
+use glam::Vec3;
+use rand::Rng;
+use rayon::iter::ParallelIterator;
+
 use crate::{
     color::vec3_to_rgb8,
-    hit::{HitRecord, Hittable},
+    hit::Hittable,
     interval::Interval,
     pdf::{HittablePdf, MixturePdf, Pdf},
     ray::Ray,
     util::random_in_unit_disk,
 };
 
-use either::Either;
-use glam::Vec3;
-use rand::Rng;
-use rayon::iter::ParallelIterator;
-
 #[derive(Debug)]
 pub struct Camera {
     image_width: u32,
     image_height: u32,
-    // aspect_ratio: f32,
-    // vfov: f32,
-    // lookfrom: Vec3,
-    // lookat: Vec3,
-    // view_up: Vec3,
     center: Vec3,
-    // samples_per_pixel: u32,
     pixel_samples_scale: f32, // rename?
     sqrt_spp: u32,
     recip_sqrt_spp: f32, // 1 / sqrt(samples per pixel)
@@ -36,12 +30,7 @@ pub struct Camera {
     pixel00_loc: Vec3,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
-    // Camera frame basis vectors
-    // u: Vec3,
-    // v: Vec3,
-    // w: Vec3,
     defocus_angle: f32,
-    // focus_dist: f32,
     defocus_disk_u: Vec3,
     defocus_disk_v: Vec3,
 }
@@ -76,10 +65,6 @@ impl Camera {
                     .par_enumerate_pixels_mut()
                     .for_each_init(rand::rng, |rng, (x, y, pixel)| {
                         let mut pixel_color = Vec3::ZERO;
-                        // for _ in 0..self.samples_per_pixel {
-                        //     let ray = self.get_ray(x, y, rng);
-                        //     pixel_color += self.ray_color(ray, self.max_depth, world, rng);
-                        // }
                         for s_y in 0..self.sqrt_spp {
                             for s_x in 0..self.sqrt_spp {
                                 let ray = self.get_ray(x, y, s_x, s_y, rng);
@@ -118,10 +103,6 @@ impl Camera {
             );
 
             let mut pixel_color = Vec3::ZERO;
-            // for _ in 0..self.samples_per_pixel {
-            //     let ray = self.get_ray(x, y, rng);
-            //     pixel_color += self.ray_color(ray, self.max_depth, world, rng);
-            // }
             for s_y in 0..self.sqrt_spp {
                 for s_x in 0..self.sqrt_spp {
                     let ray = self.get_ray(x, y, s_x, s_y, rng);
@@ -275,16 +256,9 @@ impl Camera {
             return Vec3::ZERO;
         }
 
-        let mut hit_record = HitRecord::default();
-        let hit = world.hit(
-            ray,
-            Interval::new(0.001, f32::INFINITY),
-            &mut hit_record,
-            rng,
-        );
-        if !hit {
+        let Some(hit_record) = world.hit(ray, Interval::new(0.001, f32::INFINITY), rng) else {
             return self.background_color;
-        }
+        };
 
         let emitted_color =
             hit_record

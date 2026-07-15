@@ -20,11 +20,14 @@ mod util;
 
 use std::sync::Arc;
 
+use anyhow::Context;
+use glam::{Mat4, Quat, Vec2, vec3};
+
 use crate::{
     bvh::BvhNode,
     camera::Camera,
     hittable_list::HittableList,
-    material::{DielectricMaterial, DiffuseLightMaterial, LambertianMaterial, MetalMaterial},
+    material::{DielectricMaterial, DiffuseLightMaterial, LambertianMaterial},
     mesh::load_obj_meshes,
     quad::Quad,
     sphere::Sphere,
@@ -32,24 +35,18 @@ use crate::{
     transform::Transform,
 };
 
-use anyhow::Context;
-use glam::{Mat4, Quat, Vec2, Vec3, vec3};
-
 fn main() -> anyhow::Result<()> {
     let mut world = HittableList::new();
 
-    let red_material = Arc::new(LambertianMaterial::new(
-        Arc::new(SolidColor::from_rgb(0.65, 0.05, 0.05)),
-        Vec3::ONE,
-    ));
-    let white_material = Arc::new(LambertianMaterial::new(
-        Arc::new(SolidColor::from_rgb(0.73, 0.73, 0.73)),
-        Vec3::ONE,
-    ));
-    let green_material = Arc::new(LambertianMaterial::new(
-        Arc::new(SolidColor::from_rgb(0.12, 0.45, 0.15)),
-        Vec3::ONE,
-    ));
+    let red_material = Arc::new(LambertianMaterial::new(Arc::new(SolidColor::from_rgb(
+        0.65, 0.05, 0.05,
+    ))));
+    let white_material = Arc::new(LambertianMaterial::new(Arc::new(SolidColor::from_rgb(
+        0.73, 0.73, 0.73,
+    ))));
+    let green_material = Arc::new(LambertianMaterial::new(Arc::new(SolidColor::from_rgb(
+        0.12, 0.45, 0.15,
+    ))));
     let light_material = Arc::new(DiffuseLightMaterial::new(
         Arc::new(SolidColor::from_rgb(1.0, 1.0, 1.0)),
         15.0,
@@ -122,29 +119,14 @@ fn main() -> anyhow::Result<()> {
     )));
 
     let glass_material = Arc::new(DielectricMaterial::new(1.5));
-    let glass_ball = Arc::new(Sphere::new(
-        vec3(342.5, 82.5, -147.5),
-        90.0,
-        glass_material,
-    ));
+    let glass_ball = Arc::new(Sphere::new(vec3(342.5, 82.5, -147.5), 90.0, glass_material));
     world.add(glass_ball.clone());
 
     let bvh = BvhNode::from_hittable_list(world, -1);
 
-    let empty_material = (*crate::material::DEFAULT_MATERIAL).clone();
     let mut lights = HittableList::new();
-    lights.add(Arc::new(Quad::new(
-        vec3(212.0, 554.999, -343.0),
-        vec3(131.0, 0.0, 0.0),
-        vec3(0.0, 0.0, 131.0),
-        [Vec2::ZERO; 4],
-        empty_material.clone(),
-    )));
-    lights.add(Arc::new(Sphere::new(
-        vec3(342.5, 82.5, -147.5),
-        90.0,
-        empty_material,
-    )));
+    lights.add(light);
+    lights.add(glass_ball);
 
     let image_width = 800;
     let image_height = 800;
@@ -158,8 +140,8 @@ fn main() -> anyhow::Result<()> {
         vec3(0.0, 1.0, 0.0),
         0.0,
         1.0,
-        10000,
-        100,
+        500,
+        10,
         vec3(0.0, 0.0, 0.0),
     );
 

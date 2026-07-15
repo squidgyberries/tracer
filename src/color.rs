@@ -1,6 +1,6 @@
-use crate::interval::Interval;
-
 use glam::Vec3;
+
+use crate::interval::Interval;
 
 fn linear_to_gamma(linear: f32) -> f32 {
     if linear > 0.0 {

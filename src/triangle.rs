@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use glam::{Vec2, Vec3};
+use rand::RngCore;
+
 use crate::{
     aabb::Aabb,
     hit::{HitRecord, Hittable},
@@ -7,9 +10,6 @@ use crate::{
     material::Material,
     ray::Ray,
 };
-
-use glam::{Vec2, Vec3};
-use rand::RngCore;
 
 #[derive(Debug)]
 pub struct Triangle {
@@ -45,20 +45,15 @@ impl Triangle {
 
 impl Hittable for Triangle {
     // moller trumbore from scratchapixel
-    fn hit(
-        &self,
-        ray: Ray,
-        ray_t: Interval,
-        hit_record: &mut HitRecord,
-        _rng: &mut dyn RngCore,
-    ) -> bool {
+    fn hit(&self, ray: Ray, ray_t: Interval, _rng: &mut dyn RngCore) -> Option<HitRecord> {
         let pvec = ray.direction.cross(self.ac);
         let det = self.ab.dot(pvec);
 
         // ray is parallel to plane
         if det.abs() < 1e-8 {
-            return false;
+            return None;
         }
+        // TODO: add option for back-face culling
         // back-face culling
         // if det < 1e-8 {
         //     return false;
@@ -67,31 +62,32 @@ impl Hittable for Triangle {
         let tvec = ray.origin - self.a;
         let u = tvec.dot(pvec) / det;
         if u < 0.0 || u > 1.0 {
-            return false;
+            return None;
         }
 
         let qvec = tvec.cross(self.ab);
         let v = ray.direction.dot(qvec) / det;
         if v < 0.0 || u + v > 1.0 {
-            return false;
+            return None;
         }
 
         let t = self.ac.dot(qvec) / det;
         if !ray_t.surrounds(t) {
-            return false;
+            return None;
         }
 
         let hit_point = ray.at(t);
 
         let uv = (1.0 - u - v) * self.uvs[0] + u * self.uvs[1] + v * self.uvs[2];
 
-        hit_record.t = t;
-        hit_record.point = hit_point;
-        hit_record.material = self.material.clone();
-        hit_record.normal = self.normal;
-        hit_record.front_face = det >= 0.0;
-        hit_record.uv = uv;
-        true
+        Some(HitRecord {
+            point: hit_point,
+            normal: self.normal,
+            material: self.material.clone(),
+            t,
+            uv,
+            front_face: det >= 0.0,
+        })
     }
 
     fn bounding_box(&self) -> Aabb {

@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
+use glam::{Mat4, Vec3};
+use rand::RngCore;
+
 use crate::{
     aabb::Aabb,
     hit::{HitRecord, Hittable},
     interval::Interval,
     ray::Ray,
 };
-
-use glam::{Mat4, Vec3};
-use rand::RngCore;
 
 #[derive(Debug)]
 pub struct Transform {
@@ -60,21 +60,15 @@ impl Transform {
 }
 
 impl Hittable for Transform {
-    fn hit(
-        &self,
-        ray: Ray,
-        ray_t: Interval,
-        hit_record: &mut HitRecord,
-        rng: &mut dyn RngCore,
-    ) -> bool {
+    fn hit(&self, ray: Ray, ray_t: Interval, rng: &mut dyn RngCore) -> Option<HitRecord> {
         let ray_transformed = Ray::new(
             self.transform_inv.transform_point3(ray.origin),
             self.transform_inv.transform_vector3(ray.direction),
         );
 
-        if !self.object.hit(ray_transformed, ray_t, hit_record, rng) {
-            return false;
-        }
+        let Some(mut hit_record) = self.object.hit(ray_transformed, ray_t, rng) else {
+            return None;
+        };
 
         hit_record.point = self.transform.transform_point3(hit_record.point);
         hit_record.normal = self
@@ -82,7 +76,7 @@ impl Hittable for Transform {
             .transform_vector3(hit_record.normal)
             .normalize();
 
-        true
+        Some(hit_record)
     }
 
     fn bounding_box(&self) -> Aabb {

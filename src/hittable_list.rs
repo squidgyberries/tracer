@@ -56,33 +56,18 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(
-        &self,
-        ray: Ray,
-        ray_t: Interval,
-        hit_record: &mut HitRecord,
-        rng: &mut dyn RngCore,
-    ) -> bool {
-        let mut temp_hit_record = HitRecord::default();
-        let mut temp_hit;
-        let mut hit = false;
+    fn hit(&self, ray: Ray, ray_t: Interval, rng: &mut dyn RngCore) -> Option<HitRecord> {
+        let mut result = None;
         let mut closest = ray_t.max;
 
         for object in &self.objects {
-            temp_hit = object.hit(
-                ray,
-                Interval::new(ray_t.min, closest),
-                &mut temp_hit_record,
-                rng,
-            );
-            if temp_hit {
-                hit = true;
-                closest = temp_hit_record.t;
-                *hit_record = temp_hit_record.clone();
+            if let Some(hit_record) = object.hit(ray, Interval::new(ray_t.min, closest), rng) {
+                closest = hit_record.t;
+                result = Some(hit_record);
             }
         }
 
-        hit
+        result
     }
 
     fn bounding_box(&self) -> Aabb {

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use glam::Vec3;
 use rand::RngCore;
 
@@ -8,8 +10,6 @@ use crate::{
     interval::Interval,
     ray::Ray,
 };
-
-use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct BvhNode {
@@ -98,26 +98,22 @@ impl BvhNode {
 
 impl Hittable for BvhNode {
     #[inline]
-    fn hit(
-        &self,
-        ray: Ray,
-        ray_t: Interval,
-        hit_record: &mut HitRecord,
-        rng: &mut dyn RngCore,
-    ) -> bool {
+    fn hit(&self, ray: Ray, ray_t: Interval, rng: &mut dyn RngCore) -> Option<HitRecord> {
         if !self.bbox.hit(ray, ray_t) {
-            return false;
+            return None;
         }
 
-        let hit_left = self.left.hit(ray, ray_t, hit_record, rng);
-        let hit_right = self.right.hit(
-            ray,
-            Interval::new(ray_t.min, if hit_left { hit_record.t } else { ray_t.max }),
-            hit_record,
-            rng,
-        );
+        let hit_left = self.left.hit(ray, ray_t, rng);
+        let right_max_t = if let Some(ref hit_record_left) = hit_left {
+            hit_record_left.t
+        } else {
+            ray_t.max
+        };
+        let hit_right = self
+            .right
+            .hit(ray, Interval::new(ray_t.min, right_max_t), rng);
 
-        hit_left || hit_right
+        hit_right.or(hit_left)
     }
 
     fn bounding_box(&self) -> Aabb {

@@ -1,11 +1,16 @@
 use std::{f32::consts::PI, sync::Arc};
 
-use crate::{
-    aabb::Aabb, hit::{HitRecord, Hittable}, interval::Interval, material::Material, onb::Onb, ray::Ray
-};
-
 use glam::{Vec2, Vec3};
 use rand::{Rng, RngCore};
+
+use crate::{
+    aabb::Aabb,
+    hit::{HitRecord, Hittable},
+    interval::Interval,
+    material::Material,
+    onb::Onb,
+    ray::Ray,
+};
 
 #[derive(Clone, Debug)]
 pub struct Sphere {
@@ -34,10 +39,7 @@ impl Sphere {
         let theta = (-point.y).acos();
         let phi = (-point.z).atan2(point.x) + PI;
 
-        Vec2::new(
-            phi / (2.0 * PI),
-            theta / PI,
-        )
+        Vec2::new(phi / (2.0 * PI), theta / PI)
     }
 
     fn random_to_sphere(radius: f32, distance_squared: f32, rng: &mut dyn RngCore) -> Vec3 {
@@ -57,23 +59,17 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(
-        &self,
-        ray: Ray,
-        ray_t: Interval,
-        hit_record: &mut HitRecord,
-        _rng: &mut dyn RngCore,
-    ) -> bool {
+    fn hit(&self, ray: Ray, ray_t: Interval, _rng: &mut dyn RngCore) -> Option<HitRecord> {
         let origin_center = self.center - ray.origin;
         let a = ray.direction.length_squared();
         // let b = -2.0 * ray.direction.dot(origin_center);
-        let h = ray.direction.dot(origin_center); // b = -2h
+        let h = ray.direction.dot(origin_center); // h = -b/2
         let c = origin_center.length_squared() - self.radius * self.radius;
         // let discriminant = b * b - 4.0 * a * c;
         let discriminant = h * h - a * c;
 
         if discriminant < 0.0 {
-            return false;
+            return None;
         }
 
         // (-b - discriminant.sqrt()) / (2.0 * a)
@@ -82,18 +78,23 @@ impl Hittable for Sphere {
         if !ray_t.surrounds(root) {
             root = (h + discriminant.sqrt()) / a;
             if !ray_t.surrounds(root) {
-                return false;
+                return None;
             }
         }
 
         let point = ray.at(root);
         let outward_normal = (point - self.center) / self.radius;
-        hit_record.material = self.material.clone();
-        hit_record.point = point;
-        hit_record.t = root;
+
+        let mut hit_record = HitRecord {
+            point,
+            material: self.material.clone(),
+            t: root,
+            uv: Self::get_sphere_uv(outward_normal),
+            normal: Vec3::ZERO,
+            front_face: false,
+        };
         hit_record.set_face_normal(ray, outward_normal);
-        hit_record.uv = Self::get_sphere_uv(outward_normal);
-        true
+        Some(hit_record)
     }
 
     fn bounding_box(&self) -> Aabb {
@@ -101,15 +102,13 @@ impl Hittable for Sphere {
     }
 
     fn pdf_value(&self, origin: Vec3, direction: Vec3, rng: &mut dyn RngCore) -> f32 {
-        let mut hit_record = HitRecord::default();
-        if !self.hit(
+        let Some(_hit_record) = self.hit(
             Ray::new(origin, direction),
             Interval::new(0.001, f32::INFINITY),
-            &mut hit_record,
             rng,
-        ) {
+        ) else {
             return 0.0;
-        }
+        };
 
         let distance_squared = (self.center - origin).length_squared();
         let ratio = (self.radius * self.radius / distance_squared).min(1.0);

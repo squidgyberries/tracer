@@ -1,8 +1,8 @@
 use std::{fmt::Debug, sync::Arc};
 
-use crate::interval::Interval;
-
 use glam::{Vec2, Vec3};
+
+use crate::interval::Interval;
 
 pub trait Texture: Send + Sync + Debug {
     fn value(&self, uv: Vec2, point: Vec3) -> Vec3;

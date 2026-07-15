@@ -1,8 +1,8 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Sub, SubAssign};
 
-use crate::{interval::Interval, ray::Ray};
-
 use glam::Vec3;
+
+use crate::{interval::Interval, ray::Ray};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Aabb {

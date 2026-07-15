@@ -1,13 +1,13 @@
 use std::{fmt::Debug, sync::Arc};
 
+use glam::Vec3;
+use rand::{Rng, RngCore};
+
 use crate::{
     hit::Hittable,
     onb::Onb,
     util::{random_cosine_direction, random_unit_vec3},
 };
-
-use glam::Vec3;
-use rand::{Rng, RngCore};
 
 pub trait Pdf: Debug {
     fn value(&self, direction: Vec3, rng: &mut dyn RngCore) -> f32;

@@ -1,9 +1,9 @@
 use std::{fmt::Debug, sync::Arc};
 
-use crate::{aabb::Aabb, interval::Interval, material::Material, ray::Ray};
-
 use glam::{Vec2, Vec3};
 use rand::RngCore;
+
+use crate::{aabb::Aabb, interval::Interval, material::Material, ray::Ray};
 
 #[derive(Clone)]
 pub struct HitRecord {
@@ -16,6 +16,7 @@ pub struct HitRecord {
 }
 
 impl HitRecord {
+    // TODO: replace with constructor
     #[inline]
     pub fn set_face_normal(&mut self, ray: Ray, outward_normal: Vec3) {
         self.front_face = ray.direction.dot(outward_normal) < 0.0;
@@ -27,27 +28,8 @@ impl HitRecord {
     }
 }
 
-impl Default for HitRecord {
-    fn default() -> Self {
-        Self {
-            point: Default::default(),
-            normal: Default::default(),
-            material: (*crate::material::DEFAULT_MATERIAL).clone(),
-            t: Default::default(),
-            uv: Default::default(),
-            front_face: Default::default(),
-        }
-    }
-}
-
 pub trait Hittable: Send + Sync + Debug {
-    fn hit(
-        &self,
-        ray: Ray,
-        ray_t: Interval,
-        hit_record: &mut HitRecord,
-        rng: &mut dyn RngCore,
-    ) -> bool;
+    fn hit(&self, ray: Ray, ray_t: Interval, rng: &mut dyn RngCore) -> Option<HitRecord>;
 
     fn bounding_box(&self) -> Aabb;
 
@@ -60,14 +42,8 @@ pub trait Hittable: Send + Sync + Debug {
 pub struct EmptyHittable;
 
 impl Hittable for EmptyHittable {
-    fn hit(
-        &self,
-        _ray: Ray,
-        _ray_t: Interval,
-        _hit_record: &mut HitRecord,
-        _rng: &mut dyn RngCore,
-    ) -> bool {
-        false
+    fn hit(&self, _ray: Ray, _ray_t: Interval, _rng: &mut dyn RngCore) -> Option<HitRecord> {
+        None
     }
 
     fn bounding_box(&self) -> Aabb {
